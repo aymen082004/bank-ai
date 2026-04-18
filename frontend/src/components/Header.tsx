@@ -40,10 +40,10 @@ export default function Header() {
       ];
     } else {
       navLinks = [
-        { label: "BH BANK", isBrand: true, to: "/dashboard" },
-        { label: "Agent de détection de fraude", to: "/dashboard" },
-        { label: "Agent d'analyse et de reporting", to: "/dashboard" },
-        { label: "Agent de signature et chèques", to: "/dashboard" },
+        { label: 'BH BANK', isBrand: true, to: '/dashboard' },
+        { label: 'Agent de détection de fraude', to: '/dashboard' },
+        { label: 'Agent d\'analyse et de reporting', to: '/reporting' },
+        { label: 'Agent de signature et chèques', to: '/dashboard' },
       ];
     }
   }

@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import ComplaintChat from './pages/ComplaintChat';
+import StreamlitPage from './pages/Dashboard';
 
 function App() {
   const location = useLocation();
@@ -21,6 +22,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/complaint-agent" element={<ComplaintChat />} />
+        <Route path="/reporting" element={<StreamlitPage />} />
       </Routes>
       {!isComplaintPage && <Footer />}
     </div>
