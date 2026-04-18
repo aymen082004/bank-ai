@@ -54,4 +54,3 @@ Thumbs.db
 
 # Project specific
 backend/complaint-agent/ressources/
-*.json
