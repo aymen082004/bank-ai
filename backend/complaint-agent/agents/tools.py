@@ -35,7 +35,7 @@ import numpy as np
 from datetime import datetime
 from pathlib import Path
 from typing import Any, List
-from sklearn.metrics.pairwise import cosine_similarity
+# from sklearn.metrics.pairwise import cosine_similarity
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
