@@ -1,0 +1,29 @@
+commandes :
+-venv (active)
+-new terminal : cd backend/ cd dashboard_agent/ cd code / streamlit run dashboard.py
+prompts:
+1-reclamtions dans periode de temps
+Analyse complète des réclamations entre 2026-03-22 et 2026-03-27 : KPIs, statuts, motifs, évolution temporelle, délais SLA et délai par motif
+2-analyse client avec CIN
+je veux une analyse compléte du client de CIN 94571014
+3-clients
+Analyse clients :  régions, H/F, revenus par région, corrélation score-revenu
+4-transactions
+Analyse compléte des transactions:KPIs,volume par type,évolution mensuelle ,activités horaires,top alerts
+5-credits
+Analyse du portefeuille crédit : grades,KPIs,  objets de prêts,  scores crédit
+6- comptes et cheques
+Analyse comptes et recovery : soldes, types, statuts, chèques, prêts en recouvrement
+7-reclamations
+Analyse complète des réclamations : KPIs, statuts, motifs, évolution temporelle, délais SLA et délai par motif
+8-transactions dans periode de temps
+Analyse compléte des transactions entre 2026-03-16 et 2026-03-22 :  KPIs, volume par type, évolution mensuelle, activités horaires, top alerts
+9-credits dans periode de temps
+Analyse du portefeuille crédit entre 2025-12-20 et 2025-12-31 : grades, KPIs,  objets de prêts,  scores crédit
+
+
+
+
+
+
+
