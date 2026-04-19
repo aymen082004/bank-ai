@@ -60,6 +60,7 @@ GOOGLE_OAUTH_REFRESH_TOKEN=...
 
 ```bash
 cd backend
+python -m venv .venv
 pip install -r requirements.txt
 ```
 
@@ -67,6 +68,7 @@ pip install -r requirements.txt
 
 ```bash
 cd frontend
+npm init
 npm install
 ```
 
