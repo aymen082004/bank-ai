@@ -1,0 +1,72 @@
+{% extends "custom_admin/base.html" %}
+{% load custom_filters %}
+
+{% block title %}{{ collection_name }} - MongoDB Admin{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="/admin/">Dashboard</a> / {{ collection_name }}
+</div>
+
+<div class="card">
+    <h1>{{ collection_name }}</h1>
+    <p>{{ total }} documents total</p>
+    
+    <form class="search-form" method="get" style="display: flex; gap: 10px; align-items: center;">
+        <input type="text" name="search" value="{{ search }}" placeholder="Search..." style="width: 200px;">
+        <select name="limit" style="width: 100px; padding: 10px;">
+            <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+            <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+            <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+            <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+        </select>
+        <button type="submit" class="btn">Apply</button>
+        {% if search %}
+        <a href="/admin/{{ collection_name }}/" class="btn btn-secondary">Clear</a>
+        {% endif %}
+    </form>
+    
+    {% if docs %}
+    <table>
+        <thead>
+            <tr>
+                <th>_id</th>
+                {% for field in fields %}
+                <th>{{ field }}</th>
+                {% endfor %}
+                {% if user_role != "customer" %}
+                <th>Actions</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc in docs %}
+            <tr>
+                <td style="font-family:monospace;font-size:12px;">{{ doc.doc_id }}</td>
+                {% for field in fields %}
+                <td>{{ doc|get_item:field|safe }}</td>
+                {% endfor %}
+                {% if user_role != "customer" %}
+                <td>
+                    <a href="/admin/{{ collection_name }}/{{ doc.doc_id }}/" class="btn">Edit</a>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No documents found.</p>
+    {% endif %}
+    
+    <div class="pagination">
+        {% if page > 1 %}
+        <a href="?page={{ prev_page }}&limit={{ per_page }}&search={{ search }}">◀ Previous</a>
+        {% endif %}
+        <span class="active">Page {{ page }}</span>
+        {% if has_next %}
+        <a href="?page={{ next_page }}&limit={{ per_page }}&search={{ search }}">Next ▶</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

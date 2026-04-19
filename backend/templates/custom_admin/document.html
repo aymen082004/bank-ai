@@ -1,0 +1,41 @@
+{% extends "custom_admin/base.html" %}
+{% load custom_filters %}
+
+{% block title %}Edit {{ collection_name }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="/admin/">Dashboard</a> / 
+    <a href="/admin/{{ collection_name }}/">{{ collection_name }}</a> / 
+    Edit
+</div>
+
+<div class="card">
+    <h1>Edit Document</h1>
+    
+    {% if saved %}
+    <p style="color: green;">Document saved successfully!</p>
+    {% endif %}
+    
+    {% if doc %}
+    <p><strong>ID:</strong> {{ doc_id }}</p>
+    {% if user_role != "customer" %}
+    <form method="post">
+        {% csrf_token %}
+        {% for field in fields %}
+        <label>{{ field }}</label>
+        <input type="text" name="{{ field }}" value="{{ doc|get_item:field }}">
+        {% endfor %}
+        <button type="submit" class="btn">Save</button>
+        <a href="/admin/{{ collection_name }}/" class="btn btn-secondary">Cancel</a>
+    </form>
+    {% else %}
+    {% for field in fields %}
+    <p><strong>{{ field }}:</strong> {{ doc|get_item:field }}</p>
+    {% endfor %}
+    {% endif %}
+    {% else %}
+    <p>Document not found.</p>
+    {% endif %}
+</div>
+{% endblock %}
