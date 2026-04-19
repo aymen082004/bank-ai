@@ -9,10 +9,9 @@ import Dashboard from './pages/Dashboard';
 import ComplaintChat from './pages/ComplaintChat';
 import StreamlitPage from './pages/Dashboard';
 import CreditAgent from './pages/CreditAgent';
-<<<<<<< HEAD
+import FraudDetection from './pages/FraudDetection';
 import BankAgent from './pages/BankAgent';
-=======
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
+
 
 
 function App() {
@@ -29,10 +28,10 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/complaint-agent" element={<ComplaintChat />} />
         <Route path="/credit-agent" element={<CreditAgent />} />
-<<<<<<< HEAD
+        <Route path="/fraud-agent" element={<FraudDetection />} />
+
         <Route path="/bank-agent" element={<BankAgent />} />
-=======
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
+
         <Route path="/reporting" element={<StreamlitPage />} />
       </Routes>
       {!isComplaintPage && <Footer />}
