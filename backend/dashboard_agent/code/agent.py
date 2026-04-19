@@ -6,9 +6,9 @@ Corrections :
   - XAI : module d'explication du comportement de l'agent
 """
 import json, re, time
-from langchain_ollama import ChatOllama
-from langchain.agents import AgentExecutor, create_react_agent
-from langchain.memory import ConversationBufferWindowMemory
+from langchain_openai import ChatOpenAI
+from langchain_classic.agents import AgentExecutor, create_react_agent
+from langchain_classic.memory import ConversationBufferWindowMemory
 from langchain_core.prompts import PromptTemplate
 from tools import ALL_TOOLS
 
@@ -17,11 +17,13 @@ from tools import ALL_TOOLS
 # LLM
 # ═══════════════════════════════════════════════════════════════
 def get_llm():
-    return ChatOllama(
-        model="qwen2.5:7b-instruct-q4_K_M",
+    return ChatOpenAI(
+        # model="qwen/qwen2.5-vl-7b",
+        model="qwen/qwen3-vl-4b",
+        base_url="http://localhost:1234/v1",
+        api_key="lm-studio",
         temperature=0.1,
-        num_ctx=8192,
-        num_predict=2048,
+        max_tokens=2048,
     )
 
 

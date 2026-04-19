@@ -33,7 +33,7 @@ export default function Header() {
       navLinks = [
         { label: "BH BANK", isBrand: true, to: "/dashboard" },
         { label: "Agent d'accueil", to: "/dashboard" },
-        { label: "Agent de crédit", to: "/dashboard" },
+        { label: "Agent de crédit", to: "/credit-agent" },
         { label: "Agent de réclamation", to: "/complaint-agent" },
         { label: "Agent de recouvrement", to: "/dashboard" },
         { label: "Agent commercial", to: "/dashboard" },
