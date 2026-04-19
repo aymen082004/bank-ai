@@ -1,19 +1,32 @@
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework import status
-from dotenv import load_dotenv
-<<<<<<< HEAD
-from django.http import JsonResponse
+
+
 import os
 import sys
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+sys.path.insert(0, os.path.join(project_root, "fraud_agent"))
+sys.path.append(os.path.join(project_root, "complaint-agent"))
 import importlib.util
 import jwt
 import datetime
 import threading
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir)
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from dotenv import load_dotenv
+from django.http import JsonResponse
+
+load_dotenv()
+JWT_SECRET = os.getenv("JWT_SECRET")
+
+
+
+
+# Add paths for agent imports (fraud_agent first so its internal imports resolve)
+
+
 
 def load_agent(agent_dir, module_name="agents.react_agent"):
     if 'agents' in sys.modules:
@@ -45,7 +58,7 @@ except Exception as e:
     print(f"[ERROR] Failed to load bank agent: {e}")
     traceback.print_exc()
     run_bank_agent = None
-=======
+
 import os
 import sys
 
@@ -57,10 +70,7 @@ from agents.react_agent import run_react_agent
 
 import jwt
 import datetime
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
 
-load_dotenv()
-JWT_SECRET = os.getenv("JWT_SECRET")
 
 
 @api_view(["POST"])
@@ -76,20 +86,20 @@ def complaint_agent_chat(request):
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
         user_id = payload.get("userId")
-<<<<<<< HEAD
-=======
+
+
         print(f"[DEBUG] User ID: {user_id}")
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
+
     except Exception as e:
         return Response(
             {"error": "Invalid or expired token"}, status=status.HTTP_401_UNAUTHORIZED
         )
 
     message = request.data.get("message")
-<<<<<<< HEAD
-=======
+
+
     print(f"[DEBUG] Message: {message}")
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
+
     if not message:
         return Response(
             {"error": "Message required"}, status=status.HTTP_400_BAD_REQUEST
@@ -100,10 +110,9 @@ def complaint_agent_chat(request):
 
     users_collection = get_users_collection()
     user_doc = users_collection.find_one({"_id": ObjectId(user_id)})
-<<<<<<< HEAD
-=======
+
     print(f"[DEBUG] User doc: {user_doc}")
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
+
 
     if not user_doc:
         return Response(
@@ -114,21 +123,15 @@ def complaint_agent_chat(request):
     google_access_token = user_doc.get("google_access_token")
 
     try:
-<<<<<<< HEAD
         result_holder = [None]
-
-        def run_agent():
-            result_holder[0] = run_complaint_agent(
-=======
         print(f"[DEBUG] Calling react agent...")
-
         import threading
 
         result_holder = [None]
 
         def run_agent():
             result_holder[0] = run_react_agent(
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
+
                 user_input=message,
                 user_id=user_id,
                 customer_id=customer_id,
@@ -141,21 +144,20 @@ def complaint_agent_chat(request):
         thread.join(timeout=60)
 
         if thread.is_alive():
-<<<<<<< HEAD
-=======
+
+
             print("[DEBUG] Agent timeout after 60s")
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
+
             return Response(
                 {"error": "Agent timeout - took too long"},
                 status=status.HTTP_504_GATEWAY_TIMEOUT,
             )
 
         agent_result = result_holder[0]
-<<<<<<< HEAD
-=======
+
         print(f"[DEBUG] Agent result: {agent_result}")
 
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
+
         if not agent_result:
             return Response(
                 {
@@ -174,7 +176,7 @@ def complaint_agent_chat(request):
         )
 
     except Exception as e:
-<<<<<<< HEAD
+
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -295,10 +297,127 @@ def clear_bank_memory(request):
         return JsonResponse({"status": "ok", "cleared": True})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-=======
+
         import traceback
 
         print("AGENT INTERACTION ERROR:", str(e))
         traceback.print_exc()
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
+
+
+
+
+@api_view(["POST"])
+def fraud_agent_chat(request):
+    print(f"[DEBUG] Received fraud request: {request.data}")
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return Response(
+            {"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        user_id = payload.get("userId")
+        print(f"[DEBUG] User ID: {user_id}")
+    except Exception as e:
+        return Response(
+            {"error": "Invalid or expired token"}, status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    message = request.data.get("message")
+    client_id = request.data.get("client_id")
+    print(f"[DEBUG] Message: {message}, Client ID: {client_id}")
+
+    if not message and not client_id:
+        return Response(
+            {"error": "Message or client_id required"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        print(f"[DEBUG] Calling fraud agent...")
+
+        from fraud_agent.agent.simple_text_agent import fraud_agent_text
+
+        query = message if message else f"Check fraud for {client_id}"
+        result = fraud_agent_text(query)
+
+        print(f"[DEBUG] Fraud agent result: {result}")
+
+        if "error" in result:
+            return Response(
+                {"reply": f"Erreur lors de l'analyse: {result['error']}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # Helper to clean markdown and duplicates
+        def clean_text(text, decision=None, confidence=None):
+            if not text:
+                return "N/A"
+            import re
+            # Remove markdown
+            text = re.sub(r'\*\*+', '', text)
+            text = re.sub(r'#{1,6}\s*', '', text)
+            text = re.sub(r'^[\s]*[-*]\s+', '', text, flags=re.MULTILINE)
+            text = re.sub(r'\*+', '', text)
+            # Remove lines that just repeat decision/confidence/score
+            lines = text.split('\n')
+            cleaned_lines = []
+            for line in lines:
+                line_lower = line.lower().strip()
+                # Skip repetitive metadata lines
+                if decision and 'decision' in line_lower and decision.lower() in line_lower:
+                    if len(line.strip()) < 50:
+                        continue
+                if 'confiance' in line_lower and confidence:
+                    if len(line.strip()) < 40:
+                        continue
+                if 'score total' in line_lower or 'score de risque' in line_lower:
+                    continue
+                if line.strip() and line.strip() not in cleaned_lines:
+                    cleaned_lines.append(line.strip())
+            return '\n'.join(cleaned_lines).strip() or "N/A"
+
+        bank_report = result.get("bank_report", {})
+        decision = bank_report.get('final_decision') or result.get('decision', 'Inconnue')
+        confidence = bank_report.get('final_confidence') or result.get('confidence', 0)
+
+        # Build response with explanation
+        if bank_report.get("final_decision") and bank_report.get('summary'):
+            summary = clean_text(bank_report.get('summary', 'N/A'), decision, confidence)
+            action = clean_text(bank_report.get('recommended_action', 'N/A'), decision, confidence)
+            reply_text = f"Analyse de Fraude - {result.get('client_id', 'Client')}\n\n"
+            reply_text += f"Décision: {decision}\n"
+            reply_text += f"Confiance: {confidence:.0%}\n\n"
+            if action and action != "N/A":
+                reply_text += f"Action recommandée: {action}\n\n"
+            reply_text += f"Explication:\n{summary}"
+        else:
+            explanation = clean_text(result.get('final_explanation', 'N/A'), decision, confidence)
+            reply_text = f"Analyse de Fraude - {result.get('client_id', 'Client')}\n\n"
+            reply_text += f"Décision: {decision}\n"
+            reply_text += f"Confiance: {confidence:.0%}\n\n"
+            reply_text += f"Explication:\n{explanation}"
+
+        return Response(
+            {
+                "reply": reply_text,
+                "details": {
+                    "client_id": result.get("client_id"),
+                    "decision": result.get("decision"),
+                    "confidence": result.get("confidence"),
+                    "total_risk_score": result.get("total_risk_score"),
+                    "account": result.get("account"),
+                    "card": result.get("card"),
+                    "bank_report": bank_report,
+                }
+            }
+        )
+
+    except Exception as e:
+        import traceback
+
+        print("FRAUD AGENT ERROR:", str(e))
+        traceback.print_exc()
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

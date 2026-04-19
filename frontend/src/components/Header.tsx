@@ -18,7 +18,7 @@ export default function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  let navLinks = [
+  let navLinks :{ label: string; isBrand?: boolean; to?: string; children?: string[] | null }[]= [
     { label: "BH BANK", isBrand: true, children: null },
     { label: "Agent d'accueil", children: null },
     { label: "Agent de réclamation", children: null },
@@ -32,24 +32,22 @@ export default function Header() {
     if (user.role === "customer") {
       navLinks = [
         { label: "BH BANK", isBrand: true, to: "/dashboard" },
-<<<<<<< HEAD
         { label: "Agent d'accueil", to: "/bank-agent" },
         { label: "Agent d'analyse ", to: "/dashboard" },
         { label: "Agent de crédit", to: "/credit-agent" },
         { label: "Agent de réclamation", to: "/complaint-agent" },
         { label: "Agent de détection de fraude", to: "/dashboard" },
-=======
+
         { label: "Agent d'accueil", to: "/dashboard" },
         { label: "Agent de crédit", to: "/credit-agent" },
         { label: "Agent de réclamation", to: "/complaint-agent" },
         { label: "Agent de recouvrement", to: "/dashboard" },
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
         { label: "Agent commercial", to: "/dashboard" },
       ];
     } else {
       navLinks = [
         { label: 'BH BANK', isBrand: true, to: '/dashboard' },
-        { label: 'Agent de détection de fraude', to: '/dashboard' },
+        { label: 'Agent de détection de fraude', to: '/fraud-agent' },
         { label: 'Agent d\'analyse et de reporting', to: '/reporting' },
         { label: 'Agent de signature et chèques', to: '/dashboard' },
       ];
@@ -185,16 +183,10 @@ export default function Header() {
                 <Link
                   to={item.to || "#"}
                   className={`flex items-center gap-1 h-full px-3.5 text-[13px] font-medium transition-colors whitespace-nowrap
-<<<<<<< HEAD
-                    ${idx === 0
-                      ? "text-white font-bold border-r border-[#ffffff30]"
-                      : "text-gray-300 hover:text-white"
-=======
                     ${
                       idx === 0
                         ? "text-white font-bold border-r border-[#ffffff30]"
                         : "text-gray-300 hover:text-white"
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
                     }
                   `}
                 >
