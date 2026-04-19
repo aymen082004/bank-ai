@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import {
   Search,
-  MapPin,
   ChevronDown,
   AlignJustify,
   X,
