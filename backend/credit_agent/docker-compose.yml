@@ -1,0 +1,33 @@
+services:
+  fastfin-api:
+    build: .
+    container_name: fastfin_api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - FASTFIN_LLM_BASE_URL=${FASTFIN_LLM_BASE_URL}
+      - FASTFIN_LLM_API_KEY=${FASTFIN_LLM_API_KEY}
+      - FASTFIN_LLM_MODEL=${FASTFIN_LLM_MODEL}
+      - FASTFIN_REPORT_LLM_BASE_URL=${FASTFIN_REPORT_LLM_BASE_URL}
+      - FASTFIN_REPORT_LLM_API_KEY=${FASTFIN_REPORT_LLM_API_KEY}
+      - FASTFIN_REPORT_LLM_MODEL=${FASTFIN_REPORT_LLM_MODEL}
+      - SALARY_DIFF_THRESHOLD_TND=${SALARY_DIFF_THRESHOLD_TND:-1.0}
+      - IS_DOCKER=1
+    command: python api.py
+
+  fastfin-ui:
+    build: .
+    container_name: fastfin_ui
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - FASTFIN_LLM_BASE_URL=${FASTFIN_LLM_BASE_URL}
+      - FASTFIN_LLM_API_KEY=${FASTFIN_LLM_API_KEY}
+      - FASTFIN_LLM_MODEL=${FASTFIN_LLM_MODEL}
+      - FASTFIN_REPORT_LLM_BASE_URL=${FASTFIN_REPORT_LLM_BASE_URL}
+      - FASTFIN_REPORT_LLM_API_KEY=${FASTFIN_REPORT_LLM_API_KEY}
+      - FASTFIN_REPORT_LLM_MODEL=${FASTFIN_REPORT_LLM_MODEL}
+      - IS_DOCKER=1
+    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0

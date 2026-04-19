@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+*.local
+
+# Logs
+logs/
+*.log
+
+# Node
+node_modules/
+dist/
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+backend/complaint-agent/ressources/
+backend/credit_agent/finance/calculators/
+backend/credit_agent/supervisor/bd/mcp_server.py
+backend/credit_agent/supervisor/bd/generate_recovery_loans.py
+backend/credit_agent/supervisor/bd/insert_mongo.py
+backend/credit_agent/supervisor/bd/test_mongo.py
+backend/credit_agent/test/
+backend/credit_agent/.env
