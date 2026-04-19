@@ -3,7 +3,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from dotenv import load_dotenv
-<<<<<<< HEAD
 from django.http import JsonResponse
 import os
 import sys
@@ -15,18 +14,20 @@ import threading
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 
+
 def load_agent(agent_dir, module_name="agents.react_agent"):
-    if 'agents' in sys.modules:
-        del sys.modules['agents']
-    if 'agents.react_agent' in sys.modules:
-        del sys.modules['agents.react_agent']
-        
+    if "agents" in sys.modules:
+        del sys.modules["agents"]
+    if "agents.react_agent" in sys.modules:
+        del sys.modules["agents.react_agent"]
+
     path = os.path.join(project_root, agent_dir, "agents", "react_agent.py")
     spec = importlib.util.spec_from_file_location(module_name, path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
+
 
 try:
     complaint_agent_module = load_agent("complaint-agent", "complaint_agent_module")
@@ -42,22 +43,10 @@ try:
     print("[SUCCESS] Bank agent loaded from 'reception-agent'")
 except Exception as e:
     import traceback
+
     print(f"[ERROR] Failed to load bank agent: {e}")
     traceback.print_exc()
     run_bank_agent = None
-=======
-import os
-import sys
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir)
-sys.path.append(os.path.join(project_root, "complaint-agent"))
-
-from agents.react_agent import run_react_agent
-
-import jwt
-import datetime
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
 
 load_dotenv()
 JWT_SECRET = os.getenv("JWT_SECRET")
@@ -65,7 +54,6 @@ JWT_SECRET = os.getenv("JWT_SECRET")
 
 @api_view(["POST"])
 def complaint_agent_chat(request):
-    print(f"[DEBUG] Received request: {request.data}")
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         return Response(
@@ -76,20 +64,12 @@ def complaint_agent_chat(request):
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
         user_id = payload.get("userId")
-<<<<<<< HEAD
-=======
-        print(f"[DEBUG] User ID: {user_id}")
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
     except Exception as e:
         return Response(
             {"error": "Invalid or expired token"}, status=status.HTTP_401_UNAUTHORIZED
         )
 
     message = request.data.get("message")
-<<<<<<< HEAD
-=======
-    print(f"[DEBUG] Message: {message}")
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
     if not message:
         return Response(
             {"error": "Message required"}, status=status.HTTP_400_BAD_REQUEST
@@ -100,10 +80,6 @@ def complaint_agent_chat(request):
 
     users_collection = get_users_collection()
     user_doc = users_collection.find_one({"_id": ObjectId(user_id)})
-<<<<<<< HEAD
-=======
-    print(f"[DEBUG] User doc: {user_doc}")
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
 
     if not user_doc:
         return Response(
@@ -114,21 +90,10 @@ def complaint_agent_chat(request):
     google_access_token = user_doc.get("google_access_token")
 
     try:
-<<<<<<< HEAD
         result_holder = [None]
 
         def run_agent():
             result_holder[0] = run_complaint_agent(
-=======
-        print(f"[DEBUG] Calling react agent...")
-
-        import threading
-
-        result_holder = [None]
-
-        def run_agent():
-            result_holder[0] = run_react_agent(
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
                 user_input=message,
                 user_id=user_id,
                 customer_id=customer_id,
@@ -141,21 +106,12 @@ def complaint_agent_chat(request):
         thread.join(timeout=60)
 
         if thread.is_alive():
-<<<<<<< HEAD
-=======
-            print("[DEBUG] Agent timeout after 60s")
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
             return Response(
                 {"error": "Agent timeout - took too long"},
                 status=status.HTTP_504_GATEWAY_TIMEOUT,
             )
 
         agent_result = result_holder[0]
-<<<<<<< HEAD
-=======
-        print(f"[DEBUG] Agent result: {agent_result}")
-
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
         if not agent_result:
             return Response(
                 {
@@ -174,86 +130,89 @@ def complaint_agent_chat(request):
         )
 
     except Exception as e:
-<<<<<<< HEAD
+        import traceback
+
+        print("AGENT INTERACTION ERROR:", str(e))
+        traceback.print_exc()
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(["POST"])
 def bank_agent_chat(request):
     auth_header = request.headers.get("Authorization")
-    print(f"[DEBUG] bank_agent_chat called. Auth header: {'Present' if auth_header else 'Missing'}")
-    
-    # Manual JWT check (optional but recommended for consistency)
+
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header.split(" ")[1]
         try:
             jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
         except Exception as e:
-            print(f"[WARNING] Invalid token in bank_agent_chat: {e}")
+            pass
 
     message = request.data.get("message")
     if not message:
-        return Response({"error": "Message required"}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"error": "Message required"}, status=400)
 
     try:
         global run_bank_agent
         if run_bank_agent is None:
-            print("[DEBUG] run_bank_agent is None, trying to re-load...")
             bank_agent_module = load_agent("reception-agent", "bank_agent_module")
             run_bank_agent = bank_agent_module.run_react_agent
-            
-        print(f"[DEBUG] Running bank agent for message: {message[:50]}...")
+
         result = run_bank_agent(message)
-        print(f"[DEBUG] Bank agent execution successful.")
         if isinstance(result, dict):
-            return JsonResponse({
-                "answer": result.get("answer", "Erreur"),
-                "rationale": result.get("rationale", ""),
-                "status": "success"
-            })
+            return JsonResponse(
+                {
+                    "answer": result.get("answer", "Erreur"),
+                    "rationale": result.get("rationale", ""),
+                    "status": "success",
+                }
+            )
         else:
             return JsonResponse({"answer": str(result), "status": "success"})
     except Exception as e:
         import traceback
+
         error_trace = traceback.format_exc()
-        print(f"[ERROR] bank_agent_chat failed: {str(e)}\n{error_trace}")
         return JsonResponse({"error": str(e), "trace": error_trace}, status=500)
 
-@api_view(['GET'])
+
+@api_view(["GET"])
 def get_bank_memory(request):
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         return JsonResponse({"error": "Authentication required"}, status=401)
-    
+
     token = auth_header.split(" ")[1]
     try:
         jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     except Exception:
         return JsonResponse({"error": "Invalid or expired token"}, status=401)
 
-    print(f"[DEBUG] get_bank_memory called with valid token")
     try:
-        # Dynamic import due to hyphen in 'reception-agent'
-        storage_path = os.path.join(project_root, "reception-agent", "agents", "agent_storage.py")
-        print(f"[DEBUG] Loading storage from: {storage_path}")
-        spec = importlib.util.spec_from_file_location("bank_agent_storage", storage_path)
+        storage_path = os.path.join(
+            project_root, "reception-agent", "agents", "agent_storage.py"
+        )
+        spec = importlib.util.spec_from_file_location(
+            "bank_agent_storage", storage_path
+        )
         agent_storage = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(agent_storage)
-        
+
         limit = int(request.GET.get("limit", 50))
-        events = agent_storage.load_recent_events(limit=limit, default_path=agent_storage.CHAT_HISTORY_FILE)
-        print(f"[DEBUG] Successfully loaded {len(events)} events from {agent_storage.CHAT_HISTORY_FILE}")
+        events = agent_storage.load_recent_events(
+            limit=limit, default_path=agent_storage.CHAT_HISTORY_FILE
+        )
         return JsonResponse(events, safe=False)
     except Exception as e:
-        print(f"[ERROR] get_bank_memory error: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)
 
-@api_view(['POST'])
+
+@api_view(["POST"])
 def new_bank_session(request):
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         return JsonResponse({"error": "Authentication required"}, status=401)
-    
+
     token = auth_header.split(" ")[1]
     try:
         jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
@@ -261,23 +220,28 @@ def new_bank_session(request):
         return JsonResponse({"error": "Invalid or expired token"}, status=401)
 
     try:
-        storage_path = os.path.join(project_root, "reception-agent", "agents", "agent_storage.py")
-        spec = importlib.util.spec_from_file_location("bank_agent_storage", storage_path)
+        storage_path = os.path.join(
+            project_root, "reception-agent", "agents", "agent_storage.py"
+        )
+        spec = importlib.util.spec_from_file_location(
+            "bank_agent_storage", storage_path
+        )
         agent_storage = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(agent_storage)
-        
+
         agent_storage.save_new_session("chat")
         agent_storage.save_new_session("action")
         return JsonResponse({"status": "ok", "new_session": True})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
-@api_view(['POST'])
+
+@api_view(["POST"])
 def clear_bank_memory(request):
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         return JsonResponse({"error": "Authentication required"}, status=401)
-    
+
     token = auth_header.split(" ")[1]
     try:
         jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
@@ -285,20 +249,17 @@ def clear_bank_memory(request):
         return JsonResponse({"error": "Invalid or expired token"}, status=401)
 
     try:
-        storage_path = os.path.join(project_root, "reception-agent", "agents", "agent_storage.py")
-        spec = importlib.util.spec_from_file_location("bank_agent_storage", storage_path)
+        storage_path = os.path.join(
+            project_root, "reception-agent", "agents", "agent_storage.py"
+        )
+        spec = importlib.util.spec_from_file_location(
+            "bank_agent_storage", storage_path
+        )
         agent_storage = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(agent_storage)
-        
+
         agent_storage.clear_memory("chat")
         agent_storage.clear_memory("action")
         return JsonResponse({"status": "ok", "cleared": True})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-=======
-        import traceback
-
-        print("AGENT INTERACTION ERROR:", str(e))
-        traceback.print_exc()
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2

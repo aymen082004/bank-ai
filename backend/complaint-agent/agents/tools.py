@@ -125,15 +125,9 @@ def _suggest_booking_slots_local(user_id: str = None) -> list[tuple]:
 
 
 LLM = ChatOpenAI(
-<<<<<<< HEAD
-    model=os.getenv("OPENAI_MODEL", "qwen/qwen3-vl-4b"),
-    base_url=os.getenv("OPENAI_BASE_URL", "http://127.0.0.1:1234/v1"),
-    api_key=os.getenv("OPENAI_API_KEY", "lm-studio"),
-=======
     model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
     base_url=os.getenv("OPENAI_BASE_URL"),
     api_key=os.getenv("OPENAI_API_KEY"),
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
 )
 
 
@@ -181,15 +175,9 @@ def _query_rag_store(query: str, top_k: int = 3) -> list[dict[str, Any]]:
 def _generate_hypothetical_document(query: str) -> str:
     """Generate a hypothetical document based on the query using HyDE approach."""
     llm = ChatOpenAI(
-<<<<<<< HEAD
-        model=os.getenv("OPENAI_MODEL", "qwen/qwen3-vl-4b"),
-        base_url=os.getenv("OPENAI_BASE_URL", "http://127.0.0.1:1234/v1"),
-        api_key=os.getenv("OPENAI_API_KEY", "lm-studio"),
-=======
         model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
         base_url=os.getenv("OPENAI_BASE_URL"),
         api_key=os.getenv("OPENAI_API_KEY"),
->>>>>>> 68aa2a1b8a9eb571cdbc9054624cba1fb727a7e2
         temperature=0.7,
     )
 
