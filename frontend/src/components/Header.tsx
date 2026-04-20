@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import {
   Search,
-  MapPin,
   ChevronDown,
   AlignJustify,
   X,
@@ -19,36 +18,21 @@ export default function Header() {
   const navigate = useNavigate();
 
   let navLinks = [
-    { label: "BH BANK", isBrand: true, children: null },
-    { label: "Agent d'accueil", children: null },
-    { label: "Agent de réclamation", children: null },
-    { label: "Agent commercial", children: null },
-    { label: "Agent de détection de fraude", children: null },
-    { label: "Agent d'analyse et de reporting", children: null },
-    { label: "Agent de signature et chèques", children: null },
+    { label: "BH BANK", isBrand: true, to: "/dashboard" },
+    { label: "Agent d'accueil", to: "/bank-agent" },
+    { label: "Agent de crédit", to: "/credit-agent" },
+    { label: "Agent de réclamation", to: "/complaint-agent" },
+    { label: "Agent commercial", to: "/dashboard" },
   ];
 
-  if (user) {
-    if (user.role === "customer") {
-      navLinks = [
-        { label: "BH BANK", isBrand: true, to: "/dashboard" },
-        { label: "Agent d'accueil", to: "/dashboard" },
-        { label: "Agent de crédit", to: "/credit-agent" },
-        { label: "Agent de réclamation", to: "/complaint-agent" },
-        { label: "Agent de recouvrement", to: "/dashboard" },
-        { label: "Agent commercial", to: "/dashboard" },
-      ];
-    } else {
-      navLinks = [
-        { label: 'BH BANK', isBrand: true, to: '/dashboard' },
-        { label: 'Agent de détection de fraude', to: '/dashboard' },
-        { label: 'Agent d\'analyse et de reporting', to: '/reporting' },
-        { label: 'Agent de signature et chèques', to: '/dashboard' },
-      ];
-    }
+  if (user && user.role === "chef agency") {
+    navLinks = [
+      { label: "BH BANK", isBrand: true, to: "/dashboard" },
+      { label: 'Agent de détection de fraude', to: '/fraud-agent' },
+      { label: "Admin", to: "/admin/" },
+    ];
   }
 
-  // Map roles to French for display
   const roleDisplayMap: { [key: string]: string } = {
     customer: "Client",
     "chef of agency": "Chef d'agence",
@@ -74,27 +58,19 @@ export default function Header() {
     <header
       className={`sticky top-0 z-50 w-full transition-shadow duration-300 ${scrolled ? "shadow-lg" : ""}`}
     >
-      {/* ── Top white bar ── */}
       <div
         className={`bg-white transition-all duration-300 ${scrolled ? "opacity-95 backdrop-blur-sm" : ""}`}
       >
         <div className="max-w-screen-xl mx-auto px-4 lg:px-6 flex items-center justify-between h-[68px]">
-          {/* Logo */}
-          <a
-            href={user ? "/dashboard" : "/"}
-            className="flex items-center shrink-0"
-          >
+          <a href={user ? "/dashboard" : "/"} className="flex items-center shrink-0">
             <img src="/logobh.svg" alt="BH Bank" className="h-[42px] w-auto" />
           </a>
 
-          {/* Right actions */}
           <div className="flex items-center gap-2 md:gap-3">
-            {/* ROLE Display */}
             <div className="bg-[#1c2951] text-white px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap uppercase cursor-default">
               {user ? displayRole : "NON CONNECTÉ"}
             </div>
 
-            {/* Authenticated User or Login button */}
             {user ? (
               <div className="hidden lg:flex items-center gap-3">
                 <div className="flex items-center gap-2">
@@ -130,7 +106,6 @@ export default function Header() {
               </Link>
             )}
 
-            {/* Hamburger circle button */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
               className="w-9 h-9 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 hover:border-[#c8102e] hover:text-[#c8102e] transition-all"
@@ -140,7 +115,6 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Search bar dropdown */}
         {searchOpen && (
           <div className="border-t border-gray-100 bg-white px-6 py-3">
             <div className="max-w-screen-xl mx-auto">
@@ -161,7 +135,6 @@ export default function Header() {
         )}
       </div>
 
-      {/* ── Dark navy nav bar ── */}
       <div
         className={`bg-[#1c2951] transition-all duration-300 hidden ${mobileOpen ? "lg:block" : "lg:hidden"}`}
       >
@@ -177,12 +150,10 @@ export default function Header() {
                 <Link
                   to={item.to || "#"}
                   className={`flex items-center gap-1 h-full px-3.5 text-[13px] font-medium transition-colors whitespace-nowrap
-                    ${
-                      idx === 0
-                        ? "text-white font-bold border-r border-[#ffffff30]"
-                        : "text-gray-300 hover:text-white"
-                    }
-                  `}
+                    ${idx === 0
+                      ? "text-white font-bold border-r border-[#ffffff30]"
+                      : "text-gray-300 hover:text-white"
+                    }`}
                 >
                   {item.label}
                   {item.children && (
@@ -191,11 +162,9 @@ export default function Header() {
                       className={`transition-transform duration-200 ${activeNav === item.label ? "rotate-180" : ""}`}
                     />
                   )}
-                  {/* Underline hover effect */}
                   <span className="absolute bottom-0 left-0 w-full h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300" />
                 </Link>
 
-                {/* Dropdown */}
                 {item.children && activeNav === item.label && (
                   <div className="absolute top-full left-0 bg-white shadow-xl min-w-52 py-2 z-50 border-t-2 border-[#c8102e]">
                     {item.children.map((child) => (
@@ -213,18 +182,15 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* Language selector */}
           <button className="flex items-center gap-1 text-gray-300 hover:text-white text-[13px] font-medium transition-colors">
             Français <ChevronDown size={11} />
           </button>
         </div>
       </div>
 
-      {/* ── Mobile menu ── */}
       {mobileOpen && (
         <div className="lg:hidden bg-white border-t border-gray-100 shadow-xl">
           <div className="px-4 py-2">
-            {/* Mobile Auth */}
             {user ? (
               <div className="mb-4 mt-2">
                 <div className="flex items-center gap-3 px-2 py-3 bg-gray-50 rounded-xl mb-2 border border-gray-100">
@@ -269,33 +235,13 @@ export default function Header() {
                 key={item.label}
                 className="border-b border-gray-100 last:border-0"
               >
-                <button
-                  className="w-full flex items-center justify-between px-1 py-3.5 text-gray-800 font-medium text-sm"
-                  onClick={() =>
-                    setActiveNav(activeNav === item.label ? null : item.label)
-                  }
+                <Link
+                  to={item.to || "#"}
+                  onClick={() => setMobileOpen(false)}
+                  className="block px-1 py-3.5 text-gray-800 font-medium text-sm"
                 >
                   {item.label}
-                  {item.children && (
-                    <ChevronDown
-                      size={15}
-                      className={`transition-transform ${activeNav === item.label ? "rotate-180" : ""}`}
-                    />
-                  )}
-                </button>
-                {item.children && activeNav === item.label && (
-                  <div className="bg-gray-50 px-4 pb-3 rounded-lg mb-2">
-                    {item.children.map((child) => (
-                      <a
-                        key={child}
-                        href="#"
-                        className="block py-2 text-gray-600 text-sm hover:text-[#c8102e]"
-                      >
-                        {child}
-                      </a>
-                    ))}
-                  </div>
-                )}
+                </Link>
               </div>
             ))}
           </div>

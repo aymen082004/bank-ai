@@ -29,9 +29,9 @@ else:
     load_dotenv()
 
 LLM = ChatOpenAI(
-    model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-    base_url=os.getenv("OPENAI_BASE_URL"),
-    api_key=os.getenv("OPENAI_API_KEY"),
+    model=os.getenv("FASTFIN_LLM_MODEL", "qwen/qwen3-vl-4b"),
+    base_url=os.getenv("FASTFIN_LLM_BASE_URL", "http://localhost:1234/v1"),
+    api_key=os.getenv("FASTFIN_LLM_API_KEY", "lm-studio"),
     temperature=0.7,
 )
 

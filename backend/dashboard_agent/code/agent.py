@@ -5,12 +5,21 @@ Corrections :
   - Prompt : interdit les dates inventées, passe UNIQUEMENT les filtres explicitement mentionnés
   - XAI : module d'explication du comportement de l'agent
 """
-import json, re, time
+import json, re, time, os
+from pathlib import Path
+from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_classic.agents import AgentExecutor, create_react_agent
 from langchain_classic.memory import ConversationBufferWindowMemory
 from langchain_core.prompts import PromptTemplate
 from tools import ALL_TOOLS
+
+# Load environment
+dotenv_path = Path(__file__).resolve().parents[2] / ".env"
+if dotenv_path.exists():
+    load_dotenv(dotenv_path)
+else:
+    load_dotenv()
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -18,10 +27,9 @@ from tools import ALL_TOOLS
 # ═══════════════════════════════════════════════════════════════
 def get_llm():
     return ChatOpenAI(
-        # model="qwen/qwen2.5-vl-7b",
-        model="qwen/qwen3-vl-4b",
-        base_url="http://localhost:1234/v1",
-        api_key="lm-studio",
+        model=os.getenv("FASTFIN_LLM_MODEL", "fastllmm"),
+        base_url=os.getenv("FASTFIN_LLM_BASE_URL", "http://localhost:1234/v1"),
+        api_key=os.getenv("FASTFIN_LLM_API_KEY", "lm-studio"),
         temperature=0.1,
         max_tokens=2048,
     )
