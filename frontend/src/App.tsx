@@ -7,9 +7,9 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import ComplaintChat from './pages/ComplaintChat';
-import StreamlitPage from './pages/Dashboard';
+import BankAgent from './pages/BankAgent';
 import CreditAgent from './pages/CreditAgent';
-
+import FraudDetection from './pages/FraudDetection';
 
 function App() {
   const location = useLocation();
@@ -24,8 +24,9 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/complaint-agent" element={<ComplaintChat />} />
+        <Route path="/bank-agent" element={<BankAgent />} />
         <Route path="/credit-agent" element={<CreditAgent />} />
-        <Route path="/reporting" element={<StreamlitPage />} />
+        <Route path="/fraud-agent" element={<FraudDetection />} />
       </Routes>
       {!isComplaintPage && <Footer />}
     </div>

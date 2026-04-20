@@ -946,7 +946,7 @@ def render_client_complet(data):
                 fig = px.bar(df_a, x="account_number", y="balance", color="type" if "type" in df_a.columns else None,
                              height=220, color_discrete_sequence=C, labels={"balance": "Solde (TND)", "account_number": "Compte"})
                 fig.update_traces(marker_line_width=0); _show(_f(fig))
-        solde_total = sum(a.get("balance", 0) or 0 for a in accs)
+        solde_total = sum(float(a.get("balance", 0) or 0) for a in accs)
         c1, c2 = st.columns(2)
         c1.metric("Solde total", f"{solde_total:,.0f} TND")
         c2.metric("Nb comptes", f"{len(accs):,}")
@@ -957,7 +957,7 @@ def render_client_complet(data):
     txns = data.get("transactions", [])
     if txns:
         total_txn = sum(a.get("nombre_transactions", 0) for a in txns)
-        total_vol = sum(a.get("montant_total", 0) or 0 for a in txns)
+        total_vol = sum(float(a.get("montant_total", 0) or 0) for a in txns)
         c1, c2 = st.columns(2)
         c1.metric("Total transactions", f"{total_txn:,}")
         c2.metric("Volume total", f"{total_vol:,.0f} TND")

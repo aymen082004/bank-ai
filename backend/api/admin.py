@@ -1,3 +1,2 @@
-from django.contrib import admin
-
-# Register your models here.
+# Empty - using custom_admin.py instead of Django admin for MongoDB
+# This prevents Djongo from trying to create permissions
