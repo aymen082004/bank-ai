@@ -12,6 +12,7 @@ interface Message {
 
 const ComplaintChat = () => {
   const { user, token } = useAuth();
+  const customerId = (user as any)?.customer_id || user?.id;
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -53,7 +54,7 @@ const ComplaintChat = () => {
       console.log('Sending message to agent:', input);
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/agents/complaint/`,
-        { message: input },
+        { message: input, customer_id: customerId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       console.log('Agent response:', response.data);

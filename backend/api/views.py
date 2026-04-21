@@ -52,9 +52,9 @@ def register(request):
             {"error": "User already exists with this email"},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    if phone and users_collection.find_one({"phone": phone}):
+    if cin and users_collection.find_one({"cin": cin}):
         return Response(
-            {"error": "User already exists with this phone number"},
+            {"error": "User already exists with this cin"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -176,14 +176,18 @@ def google_auth(request):
         if email:
             query.append({"email": email})
 
-        user = users_collection.find_one({"$or": query})
-
-        role = "customer"
         phone = data.get("phone")
         cin = data.get("cin", "")
 
+        if cin:
+            query.append({"cin": cin})
+
+        user = users_collection.find_one({"$and": query})
+        role = "customer"
+
+
         if not user:
-            if not phone or not cin:
+            if not cin:
                 return Response(
                     {
                         "requiresRole": True,
@@ -249,7 +253,7 @@ def google_auth(request):
         return Response(
             {"error": "Exception during Google Auth verification"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+)
 
 
 from django.shortcuts import render, redirect
@@ -352,7 +356,7 @@ def mongo_admin(request):
         return redirect("/accounts/login/")
 
     role = request.session.get("mongo_user_role", "customer")
-    if role not in ["admin", "chef of agency"]:
+    if "chef" not in role :
         return redirect("/accounts/dashboard/")
 
     collection_name = request.GET.get("collection", "users")

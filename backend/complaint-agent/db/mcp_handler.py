@@ -519,7 +519,10 @@ def save_conversation_memory(
     pass
 
 
-def _init_google_calendar_service(google_access_token: str | None = None):
+def _init_google_calendar_service(
+    google_access_token: str | None = None,
+    google_refresh_token: str | None = None,
+):
     try:
         from google.auth.transport.requests import Request
         from google.oauth2 import credentials as oauth2_credentials
@@ -530,12 +533,44 @@ def _init_google_calendar_service(google_access_token: str | None = None):
     scopes = GOOGLE_OAUTH_SCOPES
     creds = None
 
-    if google_access_token:
+    client_id = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
+    client_secret = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
+
+    if google_refresh_token and client_id and client_secret:
         try:
             creds = oauth2_credentials.Credentials(
-                token=google_access_token,
+                token=None,
+                refresh_token=google_refresh_token,
+                token_uri=GOOGLE_OAUTH_TOKEN_URI,
+                client_id=client_id,
+                client_secret=client_secret,
                 scopes=scopes,
             )
+            try:
+                creds.refresh(Request())
+            except Exception as refresh_err:
+                print(f"[{datetime.now().isoformat()}] Token refresh failed: {refresh_err}")
+                creds = None
+        except Exception as exc:
+            print(
+                f"[{datetime.now().isoformat()}] Failed to init creds from refresh_token: {exc}"
+            )
+            creds = None
+    elif google_access_token:
+        try:
+            if client_id and client_secret:
+                creds = oauth2_credentials.Credentials(
+                    token=google_access_token,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    token_uri=GOOGLE_OAUTH_TOKEN_URI,
+                    scopes=scopes,
+                )
+            else:
+                creds = oauth2_credentials.Credentials(
+                    token=google_access_token,
+                    scopes=scopes,
+                )
         except Exception as exc:
             print(
                 f"[{datetime.now().isoformat()}] Failed to init creds from access_token: {exc}"
@@ -728,9 +763,14 @@ def _init_google_calendar_service(google_access_token: str | None = None):
 
 
 def _create_google_calendar_event(
-    event_data: dict, google_access_token: str | None = None
+    event_data: dict, google_access_token: str | None = None, google_refresh_token: str | None = None
 ) -> dict | None:
-    service = _init_google_calendar_service(google_access_token=google_access_token)
+    is_refresh = google_access_token and google_access_token.startswith("ya29.")
+    
+    service = _init_google_calendar_service(
+        google_access_token=None if is_refresh else google_access_token,
+        google_refresh_token=google_access_token if is_refresh else google_refresh_token,
+    )
     if service is None:
         return None
 
