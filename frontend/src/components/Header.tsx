@@ -25,7 +25,7 @@ export default function Header() {
     { label: "Agent commercial", to: "/dashboard" },
   ];
 
-  if (user && user.role === "chef of agency") {
+  if (user && user.role.toLowerCase().includes("chef")) {
     navLinks = [
       { label: "BH BANK", isBrand: true, to: "/dashboard" },
       { label: "Agent d'accueil", to: "/bank-agent" },
@@ -152,10 +152,9 @@ export default function Header() {
                 <Link
                   to={item.to || "#"}
                   className={`flex items-center gap-1 h-full px-3.5 text-[13px] font-medium transition-colors whitespace-nowrap
-                    ${
-                      idx === 0
-                        ? "text-white font-bold border-r border-[#ffffff30]"
-                        : "text-gray-300 hover:text-white"
+                    ${idx === 0
+                      ? "text-white font-bold border-r border-[#ffffff30]"
+                      : "text-gray-300 hover:text-white"
                     }`}
                 >
                   {item.label}
