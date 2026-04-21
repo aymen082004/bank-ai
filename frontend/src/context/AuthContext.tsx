@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 
 export interface User {
   id: string;
+  customer_id: string;
   name: string;
   role: string;
   email?: string;

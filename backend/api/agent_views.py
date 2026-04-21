@@ -76,6 +76,8 @@ def complaint_agent_chat(request):
             {"error": "Message required"}, status=status.HTTP_400_BAD_REQUEST
         )
 
+    customer_id = request.data.get("customer_id")
+
     from .mongodb import get_users_collection
     from bson import ObjectId
 
@@ -87,7 +89,8 @@ def complaint_agent_chat(request):
             {"error": "User not found in database"}, status=status.HTTP_404_NOT_FOUND
         )
 
-    customer_id = user_doc.get("customer_id")
+    if not customer_id:
+        customer_id = user_doc.get("customer_id")
     google_access_token = user_doc.get("google_access_token")
 
     try:
@@ -104,7 +107,7 @@ def complaint_agent_chat(request):
         thread = threading.Thread(target=run_agent)
         thread.daemon = True
         thread.start()
-        thread.join(timeout=60)
+        thread.join(timeout=1200)
 
         if thread.is_alive():
             return Response(

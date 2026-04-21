@@ -8,18 +8,16 @@ from pathlib import Path
 from typing import Any
 from pymongo import MongoClient
 
-# Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
+from langchain_ollama import ChatOllama
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.tools import BaseTool
 from dotenv import load_dotenv
 
 from agents.tools import AVAILABLE_TOOLS
 from db.mcp_handler import mcp_handle, GOOGLE_AUTH_MONGO_URI, GOOGLE_AUTH_MONGO_DB_NAME
 
-# Load environment
 dotenv_path = Path(__file__).resolve().parents[1] / ".env"
 if not dotenv_path.exists():
     dotenv_path = Path(__file__).resolve().parents[2] / ".env"
@@ -28,459 +26,300 @@ if dotenv_path.exists():
 else:
     load_dotenv()
 
-LLM = ChatOpenAI(
-    model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-    base_url=os.getenv("OPENAI_BASE_URL"),
-    api_key=os.getenv("OPENAI_API_KEY"),
-    temperature=0.7,
-)
+REACT_SYSTEM_PROMPT = """Vous êtes un agent intelligent expert en résolution des réclamations de la BH Bank.
 
-# Bind tools to LLM
-LLM_WITH_TOOLS = LLM.bind_tools(AVAILABLE_TOOLS)
+Votre objectif n'est pas seulement de répondre, mais de **comprendre, diagnostiquer et résoudre efficacement** les problèmes clients avec précision et clarté.
 
-REACT_SYSTEM_PROMPT = """You are an intelligent Bank Complaint Resolution Agent.
+Vous utilisez le pattern ReAct amélioré :
 
-You follow the ReAct (Reasoning + Acting) pattern:
-1. **Think**: Analyze the complaint and what information is needed
-2. **Act**: Use available tools to gather data and take actions
-3. **Observe**: Check results and decide next steps
-4. **Clarify**: Ask the user for missing critical information
+1. RÉFLÉCHIR (Analyse intelligente)
+   - Comprendre la réclamation en profondeur
+   - Détecter les incohérences ou éléments suspects
+   - Faire le lien entre les données client et le problème
+   - Identifier les informations critiques manquantes
 
-Available Tools:
-- extract_complaint_details: Parse complaint and identify tasks
-- fetch_customer_context: Get customer data from database (note: empty arrays mean no data, not errors!)
-- call_subagent: Delegate to specialized agents (reception, credit, commercial, signature_checks, fraud_detection, analysis_reporting, recovery)
-- synthesize_agent_results: Combine results from multiple agents
-- record_complaint: Save reclamation to database
-- update_complaint: Update reclamation record
-- suggest_booking_slots: Get available appointment times (checks user calendar)
-- check_booking_availability: Check if user is free on specific date
-- generate_client_message: Create professional response
-- query_rag_policies: Search bank policies and regulations
-- book_appointment: Schedule a meeting in Google Calendar
-- book_followup: Book follow-up appointment in booking collection
+2. AGIR (Actions ciblées)
+   - Utiliser les outils de manière stratégique (pas automatique)
+   - Prioriser :
+     a) extract_complaint_details
+     b) fetch_customer_context (tables pertinentes uniquement)
+     c) query_rag_policies (OBLIGATOIRE avant décision)
+   - Ne jamais appeler plusieurs tables inutilement
 
-Instructions:
-1. **Check memory first**: Look for stored user information like customer_id before asking
-2. **Use memory**: Remember user information like customer_id, name, etc. for future interactions
-3. **Customer ID is already provided**: The customer's ID is stored in memory, use it directly
-4. **Empty results are OK**: If fetch returns empty arrays (reclamations=[], bookings=[]), it means the customer has no complaints/bookings - this is normal, not an error!
-5. **Fetch customer context**: Use the customer_id from memory to fetch their data
-6. **Query policies**: Use RAG to find relevant bank policies when user has a complaint/problem
-7. **Process systematically**:
-   - Extract → Fetch context → Query policies (if needed) → Record → Execute subagents → Synthesize → Generate response → Update
-8. **Be conversational**: If information is missing, ask politely rather than failing silently
-9. **Explain your reasoning**: Show the user what you're doing and thinking
-10. **Book appointments**: When suggesting slots, also offer to book them if user agrees
-11. **Adapt**: If a tool fails, try alternative approaches
+3. OBSERVER (Validation)
+   - Interpréter les résultats (pas juste les afficher)
+   - Détecter anomalies, erreurs, ou confirmations
+   - Relier les données à la réclamation du client
 
-IMPORTANT: The customer_id "69b92442f777189171928caa" is valid. If you get empty arrays in results, it just means no data exists yet - that's fine!
+4. EXPLIQUER + CLARIFIER (Interaction intelligente)
+   - Expliquer ce que vous avez trouvé de façon claire et naturelle
+   - Éviter les questions vagues
+   - Poser UNIQUEMENT des questions utiles et contextualisées
 
-If you need information from the user, ask clearly and wait for their response."""
+---
+
+## RÈGLES D'OR DE L'INTELLIGENCE
+
+### 1. Ne jamais être passif
+
+Mauvais exemple:
+"Quel est votre problème ?"
+
+Bon exemple:
+"Je vois que vous avez reçu un email concernant une dette, mais aucune information correspondante n'apparaît dans votre dossier. Nous allons vérifier cela ensemble."
+
+---
+
+### 2. Toujours relier les données au problème
+
+Mauvais exemple:
+"Vous avez 2 rendez-vous"
+
+Bon exemple:
+"Je vois que vous avez déjà 2 rendez-vous confirmés. Cela peut être lié à votre réclamation si elle concerne un suivi ou une demande précédente."
+
+---
+
+### 3. Priorité à la compréhension du contexte
+
+Si la réclamation est floue, vous devez :
+- Proposer des hypothèses intelligentes
+- Guider le client
+
+Exemple amélioré :
+"Vous mentionnez un email concernant une dette que vous ne reconnaissez pas. Cela peut être lié à un prêt existant, une erreur de notification, ou un problème de compte. Pouvez-vous me confirmer si vous avez déjà contracté un crédit chez nous ?"
+
+---
+
+### 4. query_rag_policies est OBLIGATOIRE avant toute résolution
+
+- Ne jamais résoudre sans politique.
+- Toujours s'appuyer sur les règles internes.
+
+---
+
+### 5. Gestion intelligente des données vides
+
+- Ne pas dire "aucune donnée".
+- Interpréter
+
+Exemple :
+"Aucune dette active n'apparaît dans votre dossier, ce qui rend cet email suspect. Nous allons investiguer cela."
+
+---
+
+### 6. Confirmation stricte
+
+- Avant record_complaint → demander :
+"Votre problème est-il résolu ?"
+
+- Avant booking → demander :
+  "Ce rendez-vous est-il confirmé ?"
+
+- Avant redirection → demander confirmation claire
+
+---
+
+## UTILISATION DES OUTILS
+
+- extract_complaint_details → toujours au début
+- fetch_customer_context → UNE table à la fois, selon besoin
+- query_rag_policies → OBLIGATOIRE avant décision
+- record_complaint → uniquement si résolu + confirmation
+- update_complaint → si non résolu
+- booking tools → suivre le flow strict
+- redirect_to_agent → uniquement après confirmation
+
+---
+
+## REDIRECTION
+
+- Crédit / prêt → redirect_to_agent('credit')
+- Compte / accueil → redirect_to_agent('reception')
+
+Toujours demander :
+"Souhaitez-vous que je vous redirige vers un spécialiste ?"
+
+---
+
+## STYLE DE RÉPONSE
+
+- Naturel, professionnel, fluide
+- Orienté solution
+- Jamais robotique
+- Toujours structuré :
+   1. Ce que vous avez compris
+   2. Ce que vous avez trouvé
+   3. Ce que cela signifie
+   4. Prochaine étape / question
+
+---
+
+## EXEMPLE DE BON COMPORTEMENT
+
+Input:
+"j'ai reçu un email pour payer une dette mais je n'ai rien"
+
+Output attendu:
+
+"Je comprends votre inquiétude concernant cet email.
+
+Après vérification, aucune dette active n'apparaît dans votre dossier bancaire. Cela signifie que :
+- soit il s'agit d'une erreur
+- soit l'email ne correspond pas à votre situation réelle
+
+Pour avancer, j'ai besoin de préciser un point :
+Avez-vous déjà contracté un crédit ou un prêt chez la BH Bank récemment ?
+
+Cela me permettra de vérifier s'il s'agit d'un problème administratif ou d'une notification erronée."
+
+---
+
+## PRIORITÉ ABSOLUE : COMPRÉHENSION DIRECTE
+
+Si la réclamation est clairement exprimée :
+- NE JAMAIS redemander "quel est votre problème"
+- Reformuler et confirmer la compréhension
+- Proposer des causes possibles
+- Poser des questions ciblées UNIQUEMENT si nécessaire
+
+Exemple :
+Utilisateur: "Mon prêt a été refusé sans explication"
+
+Interdit:
+"Pouvez-vous me décrire votre problème ?"
+
+Obligatoire:
+"Je comprends que votre demande de prêt a été refusée sans explication..."
+
+## EARLY STOP CONDITION
+
+The agent should STOP using tools early if:
+- The answer is already sufficiently clear
+- Additional tool calls will not significantly improve accuracy
+- The user request is fully satisfied
+
+When stopping early:
+- Explicitly summarize findings
+- Do not continue “just to be safe”
+
+## RAG USAGE DISCIPLINE RULE
+
+The output of query_rag_policies MUST NEVER override or replace user intent.
+
+RAG is ONLY a support tool, not a decision-maker.
+
+Priority order:
+1. User intent (highest priority)
+2. Conversation context
+3. Structured data (DB tools)
+4. RAG policies (support only)
+
+If RAG content is unrelated to the user's request:
+- IGNORE it
+- Do NOT ask generic clarification questions based on it
+- Do NOT shift the topic toward the retrieved documents
+
+
+## OBJECTIF FINAL
+
+Toujours :
+- Comprendre profondément
+- Relier les données
+- Suivre les procédures
+- Guider intelligemment
+- Résoudre efficacement
+
+Vous êtes un **agent expert, pas un simple chatbot**.
+
+Informations de l'utilisateur actuel: 
+	- customer_id: {customer_id} 
+	- google_access_token: {google_access_token}"""
 
 
 class ReactAgent:
-    """Dynamic ReAct agent for complaint processing."""
+    """ReAct agent using langgraph.prebuilt.create_react_agent."""
 
     def __init__(
         self,
         max_iterations: int = 10,
         verbose: bool = True,
         user_id: str | None = None,
+        customer_id: str | None = None,
         google_access_token: str | None = None,
     ):
+        from langgraph.prebuilt import create_react_agent
+        from langgraph.checkpoint.memory import MemorySaver
+
         self.max_iterations = max_iterations
         self.verbose = verbose
         self.user_id = user_id
+        self.customer_id = customer_id
         self.google_access_token = google_access_token
-        self.conversation_history: list[dict[str, Any]] = []
         self.tool_results: dict[str, Any] = {}
-        self.memory: dict[str, Any] = {}  # In-memory storage only
+        self.intermediate_steps: list = []
+        self.config = {"configurable": {"thread_id": user_id or "default"}}
 
-    def _load_memory(self):
-        """Load user memory from MongoDB if user_id is provided."""
-        pass  # Using in-memory storage only
+        prompt = REACT_SYSTEM_PROMPT.format(
+            customer_id=customer_id or "non fourni",
+            google_access_token="disponible" if google_access_token else "non disponible"
+        )
 
-    def _save_memory(self):
-        """Save user memory to MongoDB if user_id is provided."""
-        pass  # Using in-memory storage only
+        ollama_model = ChatOllama(
+            model=os.getenv("OLLAMA_MODEL", "qwen3.5:4b"),
+            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+            temperature=0.2,
+            max_tokens=1024,
+        )
 
-    def remember_user_info(self, key: str, value: Any):
-        """Store user information in memory."""
-        self.memory[key] = value
+        checkpointer = MemorySaver()
 
-    def store_conversation_resumee(self, resumee: str):
-        """Store the resumee of the conversation in memory."""
-        self.memory["last_resumee"] = resumee
-
-    def get_user_info(self, key: str) -> Any:
-        """Retrieve user information from memory."""
-        return self.memory.get(key)
-
-    def get_conversation_resumee(self) -> str:
-        """Get the last conversation resumee."""
-        return self.memory.get("last_resumee", "")
-
-    def _print_step(self, label: str, content: str):
-        """Print a reasoning step if verbose mode is enabled."""
-        if self.verbose:
-            print(f"\n[{label}]\n{content}")
-
-    def _execute_tool(self, tool_name: str, tool_input: dict[str, Any]) -> str:
-        """Execute a tool and return the result as a string."""
-        for tool in AVAILABLE_TOOLS:
-            if tool.name == tool_name:
-                try:
-                    # Add google_access_token from memory if needed for booking tools
-                    if tool_name in [
-                        "book_appointment",
-                        "suggest_booking_slots",
-                        "check_booking_availability",
-                    ]:
-                        google_token = self.get_user_info("google_access_token")
-                        if google_token:
-                            tool_input["google_access_token"] = google_token
-
-                    result = tool.func(**tool_input)
-                    # Store user info in memory if available
-                    if tool_name == "extract_complaint_details" and isinstance(
-                        result, dict
-                    ):
-                        if "customer_id" in result:
-                            self.remember_user_info(
-                                "customer_id", result["customer_id"]
-                            )
-                        if "customer_name" in result:
-                            self.remember_user_info(
-                                "customer_name", result["customer_name"]
-                            )
-
-                    # Store conversation resumee in memory when synthesis is complete
-                    if tool_name == "synthesize_agent_results" and isinstance(
-                        result, dict
-                    ):
-                        if "resume" in result:
-                            self.store_conversation_resumee(result["resume"])
-                            if self.verbose:
-                                print(
-                                    f"Stored conversation resumee in memory: {result['resume'][:100]}..."
-                                )
-
-                    return json.dumps(result, default=str)
-                except Exception as e:
-                    return json.dumps({"error": str(e), "tool": tool_name})
-        return json.dumps({"error": f"Tool '{tool_name}' not found"})
+        self.graph = create_react_agent(
+            model=ollama_model,
+            tools=AVAILABLE_TOOLS,
+            prompt=prompt,
+            checkpointer=checkpointer,
+        )
 
     def run(self, user_input: str) -> dict[str, Any]:
-        """
-        Run the ReAct agent loop with the given user input.
-
-        Args:
-            user_input: The customer's complaint or question
-
-        Returns:
-            Final result with complaint resolution
-        """
-        # Don't reset conversation_history if we have previous context
-        if not self.conversation_history:
-            self.conversation_history = []
-            self.tool_results = {}
-
-        iteration = 0
-
-        self._print_step("START", f"Processing: {user_input}")
-
-        # Add current user message to history
-        self.conversation_history.append(
-            {
-                "role": "user",
-                "content": user_input,
-                "timestamp": datetime.utcnow().isoformat(),
-            }
+        """Run the agent with user input."""
+        try:
+            result = self.graph.invoke(
+            {"messages": [("user", user_input)]},
+            config=self.config
         )
 
-        # Save conversation to memory
-        self._save_memory()
+            messages = result.get("messages", [])
+            last_message = messages[-1] if messages else None
 
-        while iteration < self.max_iterations:
-            iteration += 1
-            self._print_step("ITERATION", str(iteration))
+            output = ""
+            if last_message:
+                output = getattr(last_message, "content", "") or ""
 
-            # Get agent response
-            messages = [
-                {"role": "system", "content": REACT_SYSTEM_PROMPT},
-            ]
+            self.intermediate_steps = []
+            for msg in messages[:-1]:
+                tool_calls = getattr(msg, "tool_calls", None)
+                if tool_calls:
+                    for tc in tool_calls:
+                        tool_name = tc.get("name", "")
+                        self.tool_results[tool_name] = tc.get("output", "")
 
-            # Add memory context if available
-            if self.memory:
-                memory_str = f"User Memory: {json.dumps(self.memory, indent=2)}"
-                messages.append({"role": "system", "content": memory_str})
-
-            messages.extend(self.conversation_history)
-
-            # Convert to LangChain message format
-            lc_messages = [
-                HumanMessage(content=msg["content"])
-                if msg["role"] == "user"
-                else AIMessage(content=msg["content"])
-                for msg in messages[1:]
-            ]
-
-            # Get response from LLM
-            response = LLM_WITH_TOOLS.invoke(lc_messages)
-
-            response_content = response.content or ""
-            self._print_step("REASONING", response_content)
-
-            # Check for tool calls
-            if hasattr(response, "tool_calls") and response.tool_calls:
-                # Add AI message to history
-                self.conversation_history.append(
-                    {
-                        "role": "assistant",
-                        "content": response_content,
-                    }
-                )
-
-                # Execute tools
-                all_tool_results = []
-                for tool_call in response.tool_calls:
-                    tool_name = tool_call.get("name") or tool_call.get("type")
-                    tool_input = tool_call.get("args", {})
-
-                    self._print_step(
-                        "TOOL CALL", f"{tool_name}({json.dumps(tool_input)})"
-                    )
-
-                    result = self._execute_tool(tool_name, tool_input)
-                    self.tool_results[tool_name] = json.loads(result)
-
-                    all_tool_results.append(
-                        {
-                            "tool": tool_name,
-                            "input": tool_input,
-                            "output": result,
-                        }
-                    )
-
-                    self._print_step(
-                        "TOOL RESULT",
-                        result[:200] + "..." if len(result) > 200 else result,
-                    )
-
-                # Add tool results to conversation
-                self.conversation_history.append(
-                    {
-                        "role": "user",
-                        "content": f"Tool results:\n{json.dumps(all_tool_results, indent=2, default=str)}",
-                    }
-                )
-
-            else:
-                # No tool calls means agent is done or asking a question
-                self.conversation_history.append(
-                    {
-                        "role": "assistant",
-                        "content": response_content,
-                    }
-                )
-
-                # Check if agent is asking for information
-                if any(
-                    word in response_content.lower()
-                    for word in [
-                        "what is",
-                        "please provide",
-                        "could you",
-                        "customer id",
-                        "need",
-                        "require",
-                    ]
-                ):
-                    # Agent is asking a clarifying question
-                    self._print_step(
-                        "AWAITING INPUT", "Agent is asking for information from user"
-                    )
-
-                    # Save conversation state to memory
-                    self._save_memory()
-
-                    return {
-                        "status": "awaiting_input",
-                        "message": response_content,
-                        "conversation_history": self.conversation_history,
-                        "tool_results": self.tool_results,
-                    }
-
-                # Agent completed the task
-                self._print_step("COMPLETE", response_content)
-
-                # Save final conversation state to memory
-                self._save_memory()
-
-                return {
-                    "status": "complete",
-                    "message": response_content,
-                    "conversation_history": self.conversation_history,
-                    "tool_results": self.tool_results,
-                }
-
-        return {
-            "status": "max_iterations",
-            "message": "Reached maximum iterations",
-            "conversation_history": self.conversation_history,
-            "tool_results": self.tool_results,
-        }
+            return {
+                "status": "complete",
+                "message": output,
+                "tool_results": self.tool_results,
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {
+                "status": "error",
+                "message": str(e),
+            }
 
     def continue_conversation(self, user_input: str) -> dict[str, Any]:
-        """
-        Continue an ongoing ReAct conversation.
-
-        Args:
-            user_input: User's response to clarifying question or next input
-
-        Returns:
-            Updated result
-        """
-        # Add user response to history
-        self.conversation_history.append(
-            {
-                "role": "user",
-                "content": user_input,
-                "timestamp": datetime.utcnow().isoformat(),
-            }
-        )
-
-        # Save conversation to memory
-        self._save_memory()
-
-        # Continue the agent loop from where it left off
-        return self.run_from_history()
-
-    def run_from_history(self) -> dict[str, Any]:
-        """Continue running agent from current conversation history."""
-        iteration = 0
-
-        while iteration < self.max_iterations:
-            iteration += 1
-
-            # Get agent response
-            messages = [
-                {"role": "system", "content": REACT_SYSTEM_PROMPT},
-            ]
-
-            # Add memory context if available
-            if self.memory:
-                memory_str = f"User Memory: {json.dumps(self.memory, indent=2)}"
-                messages.append({"role": "system", "content": memory_str})
-
-            messages.extend(self.conversation_history)
-
-            # Convert to LangChain message format
-            lc_messages = []
-            for msg in messages:
-                if msg["role"] == "system":
-                    lc_messages.append(SystemMessage(content=msg["content"]))
-                elif msg["role"] == "user":
-                    lc_messages.append(HumanMessage(content=msg["content"]))
-                elif msg["role"] == "assistant":
-                    lc_messages.append(AIMessage(content=msg["content"]))
-
-            # Get response from LLM
-            response = LLM_WITH_TOOLS.invoke(lc_messages)
-
-            response_content = response.content or ""
-            self._print_step("REASONING", response_content)
-
-            # Check for tool calls
-            if hasattr(response, "tool_calls") and response.tool_calls:
-                # Add AI message
-                self.conversation_history.append(
-                    {
-                        "role": "assistant",
-                        "content": response_content,
-                    }
-                )
-
-                # Execute tools
-                all_tool_results = []
-                for tool_call in response.tool_calls:
-                    tool_name = tool_call.get("name") or tool_call.get("type")
-                    tool_input = tool_call.get("args", {})
-
-                    self._print_step(
-                        "TOOL CALL", f"{tool_name}({json.dumps(tool_input)})"
-                    )
-
-                    result = self._execute_tool(tool_name, tool_input)
-                    self.tool_results[tool_name] = json.loads(result)
-
-                    all_tool_results.append(
-                        {
-                            "tool": tool_name,
-                            "input": tool_input,
-                            "output": result,
-                        }
-                    )
-
-                    self._print_step(
-                        "TOOL RESULT",
-                        result[:200] + "..." if len(result) > 200 else result,
-                    )
-
-                # Add results to conversation
-                self.conversation_history.append(
-                    {
-                        "role": "user",
-                        "content": f"Tool results:\n{json.dumps(all_tool_results, indent=2, default=str)}",
-                    }
-                )
-
-            else:
-                # No tool calls
-                self.conversation_history.append(
-                    {
-                        "role": "assistant",
-                        "content": response_content,
-                    }
-                )
-
-                # Check if asking for more info
-                if any(
-                    word in response_content.lower()
-                    for word in [
-                        "what is",
-                        "please provide",
-                        "could you",
-                        "customer id",
-                        "need",
-                    ]
-                ):
-                    self._print_step(
-                        "AWAITING INPUT", "Agent is asking for information"
-                    )
-                    return {
-                        "status": "awaiting_input",
-                        "message": response_content,
-                        "conversation_history": self.conversation_history,
-                        "tool_results": self.tool_results,
-                    }
-
-                # Task complete
-                self._print_step("COMPLETE", response_content)
-                return {
-                    "status": "complete",
-                    "message": response_content,
-                    "conversation_history": self.conversation_history,
-                    "tool_results": self.tool_results,
-                }
-
-        return {
-            "status": "max_iterations",
-            "message": "Reached maximum iterations",
-            "conversation_history": self.conversation_history,
-            "tool_results": self.tool_results,
-        }
+        """Continue the conversation."""
+        return self.run(user_input)
 
 
 def run_react_agent(
@@ -501,7 +340,7 @@ def run_react_agent(
         google_access_token: Google OAuth token for calendar access
 
     Returns:
-        Result dict with status, message, and conversation history
+        Result dict with status, message
     """
     if not hasattr(run_react_agent, "_agent_instances"):
         run_react_agent._agent_instances = {}
@@ -510,15 +349,12 @@ def run_react_agent(
         agent = run_react_agent._agent_instances[user_id]
     else:
         agent = ReactAgent(
-            verbose=verbose, user_id=user_id, google_access_token=google_access_token
+            verbose=verbose,
+            user_id=user_id,
+            customer_id=customer_id,
+            google_access_token=google_access_token,
         )
         if user_id:
             run_react_agent._agent_instances[user_id] = agent
-
-    if customer_id:
-        agent.remember_user_info("customer_id", customer_id)
-
-    if google_access_token:
-        agent.remember_user_info("google_access_token", google_access_token)
 
     return agent.run(user_input)
