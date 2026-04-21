@@ -28,9 +28,7 @@ export default function Header() {
   if (user && user.role.toLowerCase().includes("chef")) {
     navLinks = [
       { label: "BH BANK", isBrand: true, to: "/dashboard" },
-      { label: "Agent d'accueil", to: "/bank-agent" },
-      { label: "Agent de crédit", to: "/credit-agent" },
-      { label: "Agent de réclamation", to: "/complaint-agent" },
+      { label: 'Agent de détection de fraude', to: '/fraud-agent' },
       { label: "Admin", to: "/admin/" },
     ];
   }
