@@ -158,6 +158,7 @@ def _query_rag_store(query: str, top_k: int = 1) -> list[dict[str, Any]]:
     import chromadb
     from langchain_ollama import OllamaEmbeddings
 
+
     try:
         legal_dir = Path(__file__).parent / "ressources" / "chromadb"
         

@@ -175,7 +175,6 @@ def google_auth(request):
         query = [{"googleId": google_id}]
         if email:
             query.append({"email": email})
-
         phone = data.get("phone")
         cin = data.get("cin", "")
 
@@ -253,7 +252,7 @@ def google_auth(request):
         return Response(
             {"error": "Exception during Google Auth verification"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-)
+        )
 
 
 from django.shortcuts import render, redirect
@@ -356,6 +355,7 @@ def mongo_admin(request):
         return redirect("/accounts/login/")
 
     role = request.session.get("mongo_user_role", "customer")
+    
     if "chef" not in role :
         return redirect("/accounts/dashboard/")
 

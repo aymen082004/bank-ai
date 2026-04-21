@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, List, Dict, Optional
 from dotenv import load_dotenv
+from langchain_ollama import ChatOllama
 
 # Add necessary paths
 current_dir = Path(__file__).resolve().parent
@@ -32,15 +33,18 @@ TOKEN_FACTORY_URL = "https://tokenfactory.esprit.tn/api/chat/completions"
 TOKEN_FACTORY_KEY = os.environ.get("TOKEN_FACTORY_KEY", "sk-1afd8f9c21e049499e6faa1df6faab45")
 
 # Load environment
-dotenv_path = agent_root.parent / ".env"
+dotenv_path = Path(__file__).resolve().parents[1] / ".env"
+if not dotenv_path.exists():
+    dotenv_path = Path(__file__).resolve().parents[2] / ".env"
 if dotenv_path.exists():
     load_dotenv(dotenv_path)
 else:
     load_dotenv()
 
 # Configuration
-LLM_BASE_URL = os.environ.get("OPENAI_BASE_URL", "http://127.0.0.1:1234/v1")
-LLM_MODEL = os.environ.get("OPENAI_MODEL", "qwen/qwen3-vl-4b")
+LLM_BASE_URL = os.environ.get("FASTFIN_LLM_BASE_URL", "http://localhost:1234/v1")
+LLM_MODEL = os.environ.get("FASTFIN_LLM_MODEL", "fastllmm")
+LLM_API_KEY = os.environ.get("FASTFIN_LLM_API_KEY", "lm-studio")
 
 SYSTEM_PROMPT = """Tu es l'assistant expert de la BH Bank Tunisie.
 Tu dois toujours justifier ta démarche de réflexion.
@@ -116,12 +120,20 @@ class BankReactAgent:
         rationale_steps = []
         final_answer = ""
 
-        llm = ChatOpenAI(
-            model=LLM_MODEL,
-            base_url=LLM_BASE_URL,
-            api_key=os.environ.get("OPENAI_API_KEY", "lm-studio"),
-            temperature=0,
+        # llm = ChatOpenAI(
+        #     model=LLM_MODEL,
+        #     base_url=LLM_BASE_URL,
+        #     api_key=LLM_API_KEY,
+        #     temperature=0,
+        # )
+
+        llm = ChatOllama(
+            model=os.getenv("OLLAMA_MODEL", "qwen3.5:4b"),
+            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+            temperature=0.2,
+            max_tokens=1024,
         )
+
         
         # BIND TOOLS HERE - Use list of tools directly
         llm_with_tools = llm.bind_tools(AVAILABLE_BANK_TOOLS)

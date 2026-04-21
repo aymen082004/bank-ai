@@ -22,4 +22,5 @@ urlpatterns = [
         agent_views.clear_bank_memory,
         name="clear_bank_memory",
     ),
+    path("agents/fraud/", agent_views.fraud_agent_chat, name="fraud_agent_chat"),
 ]
