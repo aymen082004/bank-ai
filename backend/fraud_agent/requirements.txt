@@ -1,0 +1,12 @@
+gradio
+pandas
+numpy
+torch
+joblib
+scikit-learn
+pymongo[srv]
+neo4j
+langchain
+openai
+python-dotenv
+joblib

@@ -1,0 +1,18 @@
+{
+    "features": [
+        "montant_mvt",
+        "sens_mvt",
+        "lib_mvt",
+        "hour",
+        "day",
+        "time_diff",
+        "amount_ratio",
+        "tx_count"
+    ],
+    "ae_low": 0.10472655296325684,
+    "ae_high": 0.1444072425365448,
+    "lstm_low": 0.09789635986089706,
+    "lstm_high": 0.12802809476852417,
+    "final_low": 0.40023972550741077,
+    "final_high": 0.47662618120940864
+}
