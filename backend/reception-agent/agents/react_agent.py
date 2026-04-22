@@ -43,7 +43,7 @@ else:
 
 # Configuration
 LLM_BASE_URL = os.environ.get("FASTFIN_LLM_BASE_URL", "http://localhost:1234/v1")
-LLM_MODEL = os.environ.get("FASTFIN_LLM_MODEL", "fastllmm")
+LLM_MODEL = os.environ.get("FASTFIN_LLM_MODEL", "qwen/qwen3-vl-4b")
 LLM_API_KEY = os.environ.get("FASTFIN_LLM_API_KEY", "lm-studio")
 
 SYSTEM_PROMPT = """Tu es l'assistant expert de la BH Bank Tunisie.
@@ -120,19 +120,19 @@ class BankReactAgent:
         rationale_steps = []
         final_answer = ""
 
-        # llm = ChatOpenAI(
-        #     model=LLM_MODEL,
-        #     base_url=LLM_BASE_URL,
-        #     api_key=LLM_API_KEY,
-        #     temperature=0,
-        # )
-
-        llm = ChatOllama(
-            model=os.getenv("OLLAMA_MODEL", "qwen3.5:4b"),
-            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-            temperature=0.2,
-            max_tokens=1024,
+        llm = ChatOpenAI(
+            model=LLM_MODEL,
+            base_url=LLM_BASE_URL,
+            api_key=LLM_API_KEY,
+            temperature=0,
         )
+
+        # llm = ChatOllama(
+        #     model=os.getenv("OLLAMA_MODEL", "qwen3.5:4b"),
+        #     base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        #     temperature=0.2,
+        #     max_tokens=1024,
+        # )
 
         
         # BIND TOOLS HERE - Use list of tools directly

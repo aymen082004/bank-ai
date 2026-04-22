@@ -53,6 +53,7 @@ npm-debug.log*
 Thumbs.db
 
 # Project specific
+backend/complaint-agent/ressources/
 backend/credit_agent/finance/calculators/
 backend/credit_agent/supervisor/bd/mcp_server.py
 backend/credit_agent/supervisor/bd/generate_recovery_loans.py

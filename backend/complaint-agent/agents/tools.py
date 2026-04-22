@@ -12,10 +12,9 @@ from typing import Any, List
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool
-from langchain_ollama import OllamaEmbeddings, ChatOllama
 from langchain_chroma import Chroma
 from db.mcp_handler import mcp_handle
 from dotenv import load_dotenv
@@ -156,7 +155,7 @@ def _query_rag_store(query: str, top_k: int = 1) -> list[dict[str, Any]]:
     os.environ["CHROMA_TELEMETRY_DISABLED"] = "true"
     
     import chromadb
-    from langchain_ollama import OllamaEmbeddings
+    from langchain_openai import OpenAIEmbeddings
 
 
     try:
@@ -175,7 +174,13 @@ def _query_rag_store(query: str, top_k: int = 1) -> list[dict[str, Any]]:
         if count == 0:
             return [{"error": "RAG collection is empty"}]
 
-        embeddings = OllamaEmbeddings(model="mxbai-embed-large:latest")
+        embeddings = OpenAIEmbeddings(
+            model=os.getenv("FASTFIN_EMBED_MODEL", "text-embedding-mxbai-embed-large-v1"),
+            base_url=os.getenv("FASTFIN_LLM_BASE_URL", "http://localhost:1234/v1"),
+            api_key=os.getenv("FASTFIN_LLM_API_KEY", "lm-studio"),
+            check_embedding_ctx_length=False,
+        )
+
         query_embedding = embeddings.embed_query(query)
         
         results = collection.query(
