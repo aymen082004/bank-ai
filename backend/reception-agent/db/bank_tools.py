@@ -14,9 +14,9 @@ import bank_actions_db
 
 @tool
 def search_bank_docs(query: str) -> str:
-    """Recherche dans la documentation interne de la BH Bank (procédures, produits, règlements). 
-    À utiliser pour répondre aux questions générales sur les services de la banque."""
+    """Recherche dans la documentation interne et sur le Web pour des questions générales, news ou infos d'actualité sur la BH Bank."""
     return bank_actions_db.search_faiss(query)
+
 
 @tool
 def get_customer_balance(customer_id: str, account_id: Optional[str] = None) -> str:

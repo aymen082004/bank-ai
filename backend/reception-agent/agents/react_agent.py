@@ -47,24 +47,30 @@ LLM_MODEL = os.environ.get("FASTFIN_LLM_MODEL", "qwen/qwen3-vl-4b")
 LLM_API_KEY = os.environ.get("FASTFIN_LLM_API_KEY", "lm-studio")
 
 SYSTEM_PROMPT = """Tu es l'assistant expert de la BH Bank Tunisie.
-Tu dois toujours justifier ta démarche de réflexion.
+TON OBJECTIF : Aider les clients pour leurs opérations bancaires ET répondre à leurs questions générales ou d'actualité sur la BH Bank (en utilisant l'outil de recherche si nécessaire).
 
-FORMAT DE RÉPONSE :
-Thought: [Ta réflexion logique en français. Explique POURQUOI tu choisis cette action ou cette réponse.]
-Action: [Si besoin d'un outil]
-Final Answer: [Ta réponse finale au client]
 
-RÈGLES :
-1. Ton 'Thought' doit être une justification pour le client (ex: "J'interroge la base car...").
-2. Réponds en français professionnel.
-3. Anti-hallucination: Utilise uniquement les données retournées par les outils.
-4. HISTORIQUE : Sers-toi de l'historique récent pour comprendre le contexte.
+RÈGLES CRITIQUES :
+1. MANDAT D'OUTIL : Si le client demande une action (ouvrir un compte, enregistrer un profil, virement), tu DOIS appeler l'outil correspondant.
+2. GROUNDING : Ne confirme JAMAIS qu'une action est réussie sans avoir le résultat de l'outil dans ton historique. 
+   - Exemple : Ne dis pas "Compte ouvert" si tu n'as pas reçu d'account_number de l'outil.
+3. ANTI-PLACEHOLDER : Interdiction totale d'utiliser des [Lien...] ou autre texte entre crochets.
+4. LIENS : Si tu génères un extrait, affiche le lien complet (http://...).
+5. TON : Français professionnel, court et efficace.
 """
 
-async def run_judge_audit(question: str, final_answer: str) -> dict:
+async def run_judge_audit(question: str, final_answer: str, tool_context: str = "") -> dict:
     """Audit métrique de la réponse par le LLM Juge de Token Factory."""
     prompt = f"""Tu es l'Auditeur Senior de la BH Bank Tunisie. 
-Évalue la fidélité de la RÉPONSE par rapport à la QUESTION.
+Évalue la fidélité de la RÉPONSE par rapport à la QUESTION et aux ACTIONS RÉALISÉES.
+
+ACTIONS RÉALISÉES (CONCOURS D'OUTILS) :
+{tool_context}
+
+RÈGLES D'AUDIT :
+1. Si la réponse contient des placeholders comme "[Lien...]", le verdict est "Halluciné".
+2. Si la réponse contient un lien PDF, vérifie s'il correspond à un fichier généré dans les ACTIONS RÉALISÉES.
+3. Si la réponse affirme qu'un compte est ouvert ou un client créé alors qu'aucun outil correspondant n'apparaît dans les ACTIONS RÉALISÉES avec un succès, le verdict est "Halluciné".
 
 QUESTION : {question}
 RÉPONSE : {final_answer}
@@ -74,7 +80,7 @@ RÉPONDS UNIQUEMENT AU FORMAT JSON SUIVANT :
   "fidelity": score_0_100,
   "relevance": score_0_100,
   "verdict": "Fidèle" ou "Halluciné" ou "Partiel",
-  "reasoning": "Analyse rapide en 2 phrases"
+  "reasoning": "Pourquoi as-tu choisi ce verdict ?"
 }}"""
 
     try:
@@ -106,19 +112,23 @@ class BankReactAgent:
 
     async def run(self, user_question: str) -> dict:
         print(f"[DEBUG BANK] ReAct Cycle: {user_question}")
-        memory_context = build_memory_context("action", limit=5)
+        chat_context = build_memory_context("chat", limit=5)
+        action_context = build_memory_context("action", limit=5)
         
-        active_system = SYSTEM_PROMPT
-        if memory_context:
-            active_system += f"\n\nCONTEXTE MÉMOIRE :\n{memory_context}"
-
-        messages: List[Any] = [
-            SystemMessage(content=active_system),
-            HumanMessage(content=user_question),
+        memory_context = ""
+        if chat_context:
+            memory_context += f"{chat_context}\n"
+        if action_context:
+            memory_context += f"{action_context}"
+            
+        full_system_prompt = SYSTEM_PROMPT
+        if memory_context.strip():
+            full_system_prompt += f"\n\nCONTEXTE MÉMOIRE :\n{memory_context.strip()}"
+            
+        messages = [
+            SystemMessage(content=full_system_prompt),
+            HumanMessage(content=user_question)
         ]
-
-        rationale_steps = []
-        final_answer = ""
 
         llm = ChatOpenAI(
             model=LLM_MODEL,
@@ -127,18 +137,12 @@ class BankReactAgent:
             temperature=0,
         )
 
-        # llm = ChatOllama(
-        #     model=os.getenv("OLLAMA_MODEL", "qwen3.5:4b"),
-        #     base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-        #     temperature=0.2,
-        #     max_tokens=1024,
-        # )
-
-        
-        # BIND TOOLS HERE - Use list of tools directly
         llm_with_tools = llm.bind_tools(AVAILABLE_BANK_TOOLS)
+        rationale_steps = []
+        actual_tool_calls = []
 
         for step in range(self.max_steps):
+
             try:
                 response = await llm_with_tools.ainvoke(messages)
             except Exception as e:
@@ -147,9 +151,12 @@ class BankReactAgent:
                 break
             
             content = response.content or ""
-            thought_match = re.search(r"(?i)Thought:\s*(.*?)(?=\nAction:|\nFinal Answer:|$)", content, flags=re.DOTALL)
-            if thought_match:
-                rationale_steps.append(thought_match.group(1).strip())
+            if content:
+                # Remove common prefixes if model hallucinates them despite prompt change
+                cleaned_content = re.sub(r"(?i)Thought:\s*|Final Answer:\s*", "", content).strip()
+                if cleaned_content:
+                    rationale_steps.append(cleaned_content)
+
             
             messages.append(response)
 
@@ -165,6 +172,12 @@ class BankReactAgent:
                             tool_call_id=tool_call["id"],
                             content=str(observation)
                         ))
+                        actual_tool_calls.append({
+                            "tool": tool_name,
+                            "args": tool_args,
+                            "result": str(observation)
+                        })
+
                         save_action_event({
                             "ts": time.time(),
                             "question": user_question,
@@ -180,7 +193,7 @@ class BankReactAgent:
         if not final_answer:
             final_answer = "Désolé, je n'ai pas pu aboutir à une réponse."
 
-        audit_report = await run_judge_audit(user_question, final_answer)
+        audit_report = await run_judge_audit(user_question, final_answer, json.dumps(actual_tool_calls, indent=2))
         xai_dashboard = {
             "strategy": rationale_steps if rationale_steps else ["Analyse directe."],
             "audit": audit_report,
