@@ -117,7 +117,9 @@ def build_memory_context(agent_kind: str, limit: int = 8) -> str:
     if not session_events:
         return ""
 
-    lines = ["Mémoire récente:"]
+    title = "Historique de la conversation :" if kind == "chat" else "Actions techniques récentes :"
+    lines = [f"\n{title}"]
+
     for ev in session_events:
         q = _fmt_short(ev.get("question", ""))
         a = _fmt_short(ev.get("answer", ""))
