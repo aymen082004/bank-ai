@@ -19,6 +19,7 @@ langchain-openai==1.1.12
 langchain-ollama==1.1.0
 langgraph==1.1.6
 langchain-chroma
+langchain-groq
 
 pypdf==6.10.1
 chromadb==1.5.5
@@ -27,4 +28,19 @@ numpy>=1.24,<2.0
 sentence-transformers
 tavily-python
 fpdf2==2.8.7
+
+# PI Project Dependencies
+neo4j==5.15.0
+playwright==1.40.0
+pywhispercpp==1.0.0
+openai-whisper==20231117
+torch==2.1.2
+scipy==1.11.4
+sounddevice==0.4.6
+pydub==0.25.1
+librosa==0.10.1
+soundfile==0.12.1
+keras==3.0.0
+jax[cpu]==0.4.20
+huggingface_hub==0.19.4
 

@@ -138,7 +138,7 @@ const BankAgent = () => {
 
   const startNewSession = async () => {
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/agents/bank/new-session/`, {}, {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/agents/bank/new-session/`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMessages([]);
@@ -150,7 +150,7 @@ const BankAgent = () => {
   const clearHistory = async () => {
     if (!window.confirm("Effacer tout votre historique ?")) return;
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/agents/bank/clear-memory/`, {}, {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/agents/bank/clear-memory/`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       startNewSession();

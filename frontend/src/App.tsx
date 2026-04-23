@@ -10,6 +10,7 @@ import ComplaintChat from './pages/ComplaintChat';
 import BankAgent from './pages/BankAgent';
 import CreditAgent from './pages/CreditAgent';
 import FraudDetection from './pages/FraudDetection';
+import InvestmentAgent from './pages/InvestmentAgent';
 
 function App() {
   const location = useLocation();
@@ -26,6 +27,7 @@ function App() {
         <Route path="/complaint-agent" element={<ComplaintChat />} />
         <Route path="/bank-agent" element={<BankAgent />} />
         <Route path="/credit-agent" element={<CreditAgent />} />
+        <Route path="/investment-agent" element={<InvestmentAgent />} />
 
         <Route path="/fraud-agent" element={<FraudDetection />} />
       </Routes>

@@ -53,7 +53,7 @@ const ComplaintChat = () => {
     try {
       console.log('Sending message to agent:', input);
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/agents/complaint/`,
+        `${import.meta.env.VITE_API_URL}/api/agents/complaint/`,
         { message: input, customer_id: customerId },
         { headers: { Authorization: `Bearer ${token}` } }
       );

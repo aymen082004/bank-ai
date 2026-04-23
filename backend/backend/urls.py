@@ -25,6 +25,7 @@ urlpatterns = [
         name="mongo_admin_delete",
     ),
     path("api/", include("api.urls")),
+    path("pi_api/", include("pi_api.urls")),
     # Account views
     path("accounts/login/", api_views.mongo_login, name="login"),
     path("accounts/logout/", api_views.mongo_logout, name="logout"),
