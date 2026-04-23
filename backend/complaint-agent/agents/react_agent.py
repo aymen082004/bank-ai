@@ -10,7 +10,7 @@ from pymongo import MongoClient
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.tools import BaseTool
 from dotenv import load_dotenv
@@ -269,14 +269,15 @@ class ReactAgent:
         )
 
 
-        # ollama_model = ChatOllama(
-        #     model=os.getenv("OLLAMA_MODEL", "qwen3.5:4b"),
-        #     base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        llm = init_chat_model(model=os.getenv("OPENAI_MODEL"), api_key=os.getenv("OPENAI_API_KEY"), base_url=os.getenv("OPENAI_BASE_URL"), model_provider="openai")
+        
+        # llm = ChatOpenAI(
+        #     model=os.getenv("FASTFIN_LLM_MODEL", "qwen/qwen3-vl-4b"),
+        #     base_url=os.getenv("FASTFIN_LLM_BASE_URL", "http://localhost:1234/v1"),
+        #     api_key=os.getenv("FASTFIN_LLM_API_KEY", "lm-studio"),
         #     temperature=0.2,
         #     max_tokens=1024,
         # )
-
-        llm = init_chat_model(model=os.getenv("OPENAI_MODEL"), api_key=os.getenv("OPENAI_API_KEY"), base_url=os.getenv("OPENAI_BASE_URL"), model_provider="openai")
 
         checkpointer = MemorySaver()
 

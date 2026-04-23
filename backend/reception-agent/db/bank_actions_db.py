@@ -4,6 +4,8 @@ import datetime as _dt
 import os
 import re
 import json
+from pathlib import Path
+
 from typing import Any, Dict, Optional
 
 from pymongo import MongoClient
@@ -457,7 +459,10 @@ def generate_statement_pdf(account_identifier: str) -> Dict[str, Any]:
     try:
         from fpdf import FPDF
     except ImportError:
-        from fpdf2 import FPDF
+        try:
+            from fpdf2 import FPDF
+        except ImportError:
+            return {"status": "ERROR", "error": "Bibliothèque PDF (fpdf2) non installée sur le serveur."}
     import os
     import time
     
@@ -507,17 +512,24 @@ def generate_statement_pdf(account_identifier: str) -> Dict[str, Any]:
         pdf.cell(160, 10, "Aucune transaction.", border=1, ln=1, align="C")
 
     # 3. Save
-    folder = "web_rag_test/temp_statements"
+    # 3. Save to media folder
+    # On remonte vers la racine du projet backend puis dans media/statements
+    backend_root = Path(__file__).resolve().parents[2]
+    folder = backend_root / "media" / "statements"
+    
     if not os.path.exists(folder):
         os.makedirs(folder, exist_ok=True)
     
     filename = f"extrait_{int(time.time())}.pdf"
-    filepath = os.path.join(folder, filename)
-    pdf.output(filepath)
+    filepath = folder / filename
+    pdf.output(str(filepath))
+    
+    # URL de téléchargement (relative à la racine du serveur)
+    pdf_url = f"http://localhost:8000/media/statements/{filename}"
     
     return {
         "status": "SUCCESS",
-        "pdf_url": f"/temp_statements/{filename}",
+        "pdf_url": pdf_url,
         "filename": filename
     }
 
