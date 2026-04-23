@@ -9,7 +9,6 @@ import json, re, time, os
 from pathlib import Path
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from langchain_ollama import ChatOllama
 from langchain_classic.agents import AgentExecutor, create_react_agent
 from langchain_classic.memory import ConversationBufferWindowMemory
 from langchain_core.prompts import PromptTemplate
@@ -28,20 +27,20 @@ else:
 # ═══════════════════════════════════════════════════════════════
 def get_llm():
     
-        # return ChatOpenAI(
-        #     model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-        #     base_url=os.getenv("OPENAI_BASE_URL"),
-        #     api_key=os.getenv("OPENAI_API_KEY"),
-        #     temperature=0.1,
-        #     max_tokens=2048,
-        # )
+        return ChatOpenAI(
+            model=os.getenv("FASTFIN_LLM_MODEL", "qwen/qwen3-vl-4b"),
+            base_url=os.getenv("FASTFIN_LLM_BASE_URL", "http://localhost:1234/v1"),
+            api_key=os.getenv("FASTFIN_LLM_API_KEY"),
+            temperature=0.1,
+            max_tokens=2048,
+        )
     
-    return ChatOllama(
-        model=os.getenv("OLLAMA_MODEL", "qwen3.5:4b"),
-        base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-        temperature=0.2,
-        max_tokens=1024,
-    )
+    # return ChatOllama(
+    #     model=os.getenv("FASTFIN_LLM_MODEL", "qwen/qwen3-vl-4b"),
+    #     base_url=os.getenv("FASTFIN_LLM_BASE_URL", "http://localhost:1234/v1"),
+    #     temperature=0.2,
+    #     max_tokens=1024,
+    # )
 
 
 # ═══════════════════════════════════════════════════════════════

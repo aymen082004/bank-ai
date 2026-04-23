@@ -5,8 +5,10 @@ import {
   Send, User, Bot, Loader2, AlertCircle, 
   History as HistoryIcon, Lightbulb, X, 
   Trash2, PlusCircle, CheckCircle2, ShieldAlert,
-  Info, ChevronLeft, ChevronRight, Scale
+  Info, ChevronLeft, ChevronRight, Scale,
+  FileText, Download
 } from 'lucide-react';
+
 
 interface Rationale {
   strategy: string[];
@@ -73,26 +75,8 @@ const BankAgent = () => {
         setHistoryError("Format d'historique invalide");
       }
       
-      // Si c'est le premier chargement et qu'on a des messages, on les affiche
-      if (messages.length === 0 && Array.isArray(resp.data) && resp.data.length > 0) {
-        const lastSessionMessages = [];
-        // On remonte jusqu'à la dernière session
-        for (let i = resp.data.length - 1; i >= 0; i--) {
-          if (resp.data[i].is_new_session) break;
-          lastSessionMessages.unshift({
-            id: `hist-${i}`,
-            text: resp.data[i].answer || resp.data[i].question,
-            sender: resp.data[i].answer ? 'agent' : 'user',
-            timestamp: new Date(resp.data[i].ts * 1000),
-            rationale: resp.data[i].rationale
-          });
-        }
-        if (lastSessionMessages.length > 0) {
-          setMessages(lastSessionMessages as Message[]);
-        } else {
-           addWelcomeMessage();
-        }
-      } else if (messages.length === 0) {
+      // On affiche toujours le message de bienvenue par défaut pour une nouvelle discussion
+      if (messages.length === 0) {
         addWelcomeMessage();
       }
     } catch (err: any) {
@@ -183,28 +167,9 @@ const BankAgent = () => {
     }
   };
 
-  const loadSessionFromHistory = (targetEvent: any) => {
-    const eventIdx = historyEvents.findIndex(ev => ev.ts === targetEvent.ts);
-    if (eventIdx === -1) return;
-
-    let sessionStart = 0;
-    for (let i = eventIdx; i >= 0; i--) {
-      if (historyEvents[i].is_new_session) {
-        sessionStart = i + 1;
-        break;
-      }
-    }
-
-    let sessionEnd = historyEvents.length;
-    for (let i = eventIdx + 1; i < historyEvents.length; i++) {
-      if (historyEvents[i].is_new_session) {
-        sessionEnd = i;
-        break;
-      }
-    }
-
+  const loadSessionFromHistory = (session: any[]) => {
     const flattenedMessages: Message[] = [];
-    historyEvents.slice(sessionStart, sessionEnd).forEach((ev, i) => {
+    session.forEach((ev, i) => {
       if (ev.question) {
         flattenedMessages.push({
           id: `q-${ev.ts}-${i}`,
@@ -229,7 +194,97 @@ const BankAgent = () => {
     }
   };
 
+  const getGroupedSessions = () => {
+    const sessions: any[][] = [];
+    let currentSession: any[] = [];
+    
+    historyEvents.forEach(ev => {
+      if (ev.is_new_session) {
+        if (currentSession.length > 0) sessions.push(currentSession);
+        currentSession = [];
+      } else {
+        currentSession.push(ev);
+      }
+    });
+    if (currentSession.length > 0) sessions.push(currentSession);
+    
+    return sessions.reverse();
+  };
+
+  const renderMessageText = (text: string) => {
+    const combinedRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<>()[\]{}]+(?:(?:\([^\s()<>!]+\)|\[[^\s()[\]<>!]+\]|{[^\s(){}<>!]+})|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/g;
+    
+    const elements: (JSX.Element | string)[] = [];
+    const renderedUrls = new Set<string>();
+    let lastIndex = 0;
+    let match;
+
+    while ((match = combinedRegex.exec(text)) !== null) {
+      // Text before match
+      if (match.index > lastIndex) {
+        elements.push(text.substring(lastIndex, match.index));
+      }
+
+      const mdTitle = match[1];
+      const mdUrl = match[2];
+      const rawUrl = match[3];
+      const url = mdUrl || rawUrl;
+
+      // Skip if this specific URL was already rendered in this message
+      if (!renderedUrls.has(url)) {
+        const isPdfStatement = url.toLowerCase().includes('extrait') && url.toLowerCase().includes('.pdf');
+        
+        if (isPdfStatement) {
+          elements.push(
+            <a 
+              key={`card-${match.index}`} 
+              href={url} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="block mt-3 p-4 bg-red-50 border border-red-100 rounded-2xl hover:bg-red-100 transition-all group flex items-center gap-4 no-underline"
+            >
+              <div className="bg-red-600 p-2.5 rounded-xl text-white shadow-sm group-hover:scale-110 transition-transform">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <div className="text-red-900 font-bold text-base">Extrait de Compte PDF</div>
+                <div className="text-red-600 text-xs font-medium flex items-center gap-1">
+                  Cliquez pour télécharger • BH Bank
+                </div>
+              </div>
+              <Download className="w-5 h-5 text-red-400 group-hover:text-red-600" />
+            </a>
+          );
+        } else {
+          elements.push(
+            <a 
+              key={`link-${match.index}`} 
+              href={url} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-red-600 hover:text-red-700 underline font-bold"
+            >
+              {mdTitle || url}
+            </a>
+          );
+        }
+        renderedUrls.add(url);
+      }
+
+      lastIndex = combinedRegex.lastIndex;
+    }
+
+    // Remaining text
+    if (lastIndex < text.length) {
+      elements.push(text.substring(lastIndex));
+    }
+
+    return elements;
+  };
+
+
   return (
+
     <div className="flex h-[calc(100vh-64px)] w-full bg-slate-100 overflow-hidden font-sans">
       
       {/* Sidebar - History */}
@@ -256,16 +311,24 @@ const BankAgent = () => {
               <p className="text-[10px] font-bold">{historyError}</p>
             </div>
           )}
-          {!historyLoading && !historyError && historyEvents.filter(ev => !ev.is_new_session).reverse().slice(0, 20).map((ev, i) => (
+          {!historyLoading && !historyError && getGroupedSessions().slice(0, 15).map((session, i) => (
             <div 
               key={i} 
-              onClick={() => loadSessionFromHistory(ev)}
+              onClick={() => loadSessionFromHistory(session)}
               className="p-3 rounded-xl hover:bg-slate-50 cursor-pointer border border-transparent hover:border-slate-100 transition-all group"
             >
-              <p className="text-xs font-semibold text-slate-800 truncate mb-1">{ev.question}</p>
-              <p className="text-[10px] text-slate-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                {new Date(ev.ts * 1000).toLocaleDateString()}
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-1.5 h-1.5 bg-red-600 rounded-full" />
+                <p className="text-xs font-bold text-slate-800 truncate">
+                  {session[0]?.question || "Discussion sans titre"}
+                </p>
+              </div>
+              <p className="text-[10px] text-slate-400 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                  {session.length} message(s)
+                </span>
+                <span>{new Date(session[0]?.ts * 1000).toLocaleDateString()}</span>
               </p>
             </div>
           ))}
@@ -324,15 +387,34 @@ const BankAgent = () => {
                   </div>
                   <div className="relative">
                     <div className={`p-5 rounded-3xl shadow-sm text-sm leading-relaxed ${msg.sender === 'user' ? 'bg-[#1c2951] text-white rounded-tr-none' : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none font-medium'}`}>
-                      <div className="whitespace-pre-wrap">{msg.text}</div>
+                      <div className="whitespace-pre-wrap">{renderMessageText(msg.text)}</div>
+
                       <div className={`text-[9px] mt-3 font-bold uppercase tracking-widest opacity-40 flex justify-between items-center ${msg.sender === 'user' ? 'text-slate-200' : 'text-slate-500'}`}>
                         {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         {msg.sender === 'agent' && (
-                          <span className="flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                            Vérifié par audit
+                          <span className="flex items-center gap-1 cursor-help" title={
+                            (msg.rationale ? (() => {
+                              try {
+                                const r = JSON.parse(msg.rationale);
+                                return r.audit?.reasoning || 'Audit de sécurité effectué';
+                              } catch(e) { return 'Audit de sécurité effectué'; }
+                            })() : 'Audit de sécurité effectué')
+                          }>
+                            {(() => {
+                              try {
+                                if (!msg.rationale) return <><CheckCircle2 className="w-3 h-3 text-emerald-500" />Vérifié par audit</>;
+                                const r = JSON.parse(msg.rationale);
+                                const v = r.audit?.verdict;
+                                if (v === 'Halluciné') return <><ShieldAlert className="w-3 h-3 text-red-500" />Audit : Hallucination détectée</>;
+                                if (v === 'Partiel') return <><Info className="w-3 h-3 text-orange-500" />Audit : Fidélité partielle</>;
+                                return <><CheckCircle2 className="w-3 h-3 text-emerald-500" />Vérifié par audit</>;
+                              } catch(e) {
+                                return <><CheckCircle2 className="w-3 h-3 text-emerald-500" />Vérifié par audit</>;
+                              }
+                            })()}
                           </span>
                         )}
+
                       </div>
                     </div>
                     {/* XAI Button */}
