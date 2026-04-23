@@ -16,7 +16,7 @@ from langchain_core.tools import BaseTool
 from dotenv import load_dotenv
 
 from agents.tools import AVAILABLE_TOOLS
-from db.mcp_handler import mcp_handle, GOOGLE_AUTH_MONGO_URI, GOOGLE_AUTH_MONGO_DB_NAME
+from db.mcp_handler import mcp_handle
 
 dotenv_path = Path(__file__).resolve().parents[1] / ".env"
 if not dotenv_path.exists():
@@ -250,6 +250,9 @@ class ReactAgent:
     ):
         from langgraph.prebuilt import create_react_agent
         from langgraph.checkpoint.memory import MemorySaver
+        from langchain.chat_models import init_chat_model
+
+
 
         self.max_iterations = max_iterations
         self.verbose = verbose
@@ -265,17 +268,20 @@ class ReactAgent:
             google_access_token="disponible" if google_access_token else "non disponible"
         )
 
-        ollama_model = ChatOllama(
-            model=os.getenv("OLLAMA_MODEL", "qwen3.5:4b"),
-            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-            temperature=0.2,
-            max_tokens=1024,
-        )
+
+        # ollama_model = ChatOllama(
+        #     model=os.getenv("OLLAMA_MODEL", "qwen3.5:4b"),
+        #     base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        #     temperature=0.2,
+        #     max_tokens=1024,
+        # )
+
+        llm = init_chat_model(model=os.getenv("OPENAI_MODEL"), api_key=os.getenv("OPENAI_API_KEY"), base_url=os.getenv("OPENAI_BASE_URL"), model_provider="openai")
 
         checkpointer = MemorySaver()
 
         self.graph = create_react_agent(
-            model=ollama_model,
+            model=llm,
             tools=AVAILABLE_TOOLS,
             prompt=prompt,
             checkpointer=checkpointer,

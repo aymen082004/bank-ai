@@ -19,7 +19,6 @@ from langchain_ollama import OllamaEmbeddings, ChatOllama
 from langchain_chroma import Chroma
 from db.mcp_handler import mcp_handle
 from dotenv import load_dotenv
-from functools import lru_cache
 
 
 dotenv_path = Path(__file__).resolve().parents[2] / ".env"
@@ -48,7 +47,7 @@ def _fetch_google_calendar_events(google_access_token: str, time_min: datetime, 
         time_max: End of time range to fetch events
 
     Returns:
-        List of event dicts with 'start' and 'end' keys
+        List of event dicts with 'start' and 'end' keys (empty if token invalid/expired)
     """
     if not google_access_token:
         return []
@@ -427,11 +426,14 @@ Agent warning:
 """
     from datetime import datetime, timedelta
 
+    date_str = complaint_data.get("date")
+    date_rep_str = complaint_data.get("date_rep")
+    
     record = {
         "customer_id": complaint_data.get("customer_id"),
         "objet": complaint_data.get("objet"),
-        "date": datetime.strptime(complaint_data.get("date"), "%Y-%m-%d").isoformat(),
-        "date_rep": datetime.strptime(complaint_data.get("date_rep"), "%Y-%m-%d").isoformat(),
+        "date": datetime.strptime(date_str, "%Y-%m-%d").isoformat() if date_str else datetime.now().isoformat(),
+        "date_rep": datetime.strptime(date_rep_str, "%Y-%m-%d").isoformat() if date_rep_str else None,
         "status": complaint_data.get("status"),
         "followed_up": bool(complaint_data.get("followed_up")),
     }
@@ -640,11 +642,13 @@ Agent behavior:
             end_dt = start_dt + timedelta(hours=1)
 
             calendar_event = _create_google_calendar_event(
+                event_data={
+                    "summary": appointment_type,
+                    "description": description or f"Booking ID: {booking_id}",
+                    "start": start_dt.isoformat(),
+                    "end": end_dt.isoformat(),
+                },
                 google_access_token=google_access_token,
-                summary=appointment_type,
-                description=description or f"Booking ID: {booking_id}",
-                start_time=start_dt.isoformat(),
-                end_time=end_dt.isoformat(),
             )
 
             if calendar_event:
@@ -734,11 +738,13 @@ def book_followup(
             end_dt = start_dt + timedelta(hours=1)
 
             calendar_event = _create_google_calendar_event(
+                event_data={
+                    "summary": appointment_type,
+                    "description": description or f"Booking ID: {booking_id}",
+                    "start": start_dt.isoformat(),
+                    "end": end_dt.isoformat(),
+                },
                 google_access_token=google_access_token,
-                summary=appointment_type,
-                description=description or f"Booking ID: {booking_id}",
-                start_time=start_dt.isoformat(),
-                end_time=end_dt.isoformat(),
             )
 
             if calendar_event:
@@ -760,7 +766,7 @@ def redirect_to_agent(complaint_type: str) -> str:
 Initiate redirection to a specialized agent (credit or reception).
 
 Use ONLY when:
-- The request clearly falls خارج your scope
+- The request clearly falls out of your scope
 - Example:
    - Loan applications → credit agent
    - Account opening → reception agent
@@ -790,27 +796,6 @@ Pour confirmer, devez-vous être redirigé vers l'agent Accueil pour l'ouverture
         return """Type de redirection non reconnu. Veuillez spécifier 'credit' ou 'reception'."""
 
 
-def get_redirect_info(complaint_text: str) -> str | None:
-    """
-    Analyze complaint to determine if it needs redirection to another agent.
-    
-    Returns the redirect type if detected, None otherwise.
-    """
-    text_lower = complaint_text.lower()
-    
-    credit_keywords = ["pret", "credit", "emprunt", "financement", "loan", "crédit"]
-    reception_keywords = ["compte", "ouvrir", "accueillir", "accueil", "nouveau client", "opening"]
-    
-    for kw in credit_keywords:
-        if kw in text_lower:
-            return "credit"
-    for kw in reception_keywords:
-        if kw in text_lower:
-            return "reception"
-    return None
-
-
-# Get all tools
 AVAILABLE_TOOLS = [
     query_rag_policies,
     fetch_customer_context,
