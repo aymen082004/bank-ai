@@ -6,7 +6,7 @@ import {
   History as HistoryIcon, Lightbulb, X, 
   Trash2, PlusCircle, CheckCircle2, ShieldAlert,
   Info, ChevronLeft, ChevronRight, Scale,
-  FileText, Download
+  FileText, Download, Mic, MicOff
 } from 'lucide-react';
 
 
@@ -41,6 +41,12 @@ const BankAgent = () => {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [selectedRationale, setSelectedRationale] = useState<Rationale | null>(null);
   const [isRationaleOpen, setIsRationaleOpen] = useState(false);
+  
+  // Voice recording states
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -209,6 +215,76 @@ const BankAgent = () => {
     if (currentSession.length > 0) sessions.push(currentSession);
     
     return sessions.reverse();
+  };
+
+  // Voice recording functions
+  const startRecording = async () => {
+    console.log('Starting recording...');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('Microphone access granted');
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        console.log('Data available:', event.data.size);
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        console.log('Recording stopped, processing audio...');
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await transcribeAudio(audioBlob);
+        // Stop all tracks to release the microphone
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+      };
+
+      mediaRecorder.start(100); // Collect data every 100ms
+      setIsRecording(true);
+      console.log('Recording started successfully');
+    } catch (err) {
+      console.error('Error accessing microphone:', err);
+      setError('Impossible d\'accéder au microphone. Veuillez vérifier les permissions.');
+    }
+  };
+
+  const stopRecording = () => {
+    console.log('Stopping recording...');
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+
+      const resp = await axios.post(`${import.meta.env.VITE_API_URL}/api/agents/bank/transcribe/`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (resp.data.text) {
+        setInput(prev => prev + ' ' + resp.data.text);
+      }
+    } catch (err: any) {
+      console.error('Transcription error:', err);
+      setError('Erreur de transcription. Veuillez réessayer.');
+    } finally {
+      setIsTranscribing(false);
+    }
   };
 
   const renderMessageText = (text: string) => {
@@ -477,13 +553,42 @@ const BankAgent = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Posez votre question à l'Expert (ex: Mon dernier relevé ?)"
-                disabled={loading}
+                disabled={loading || isTranscribing}
                 className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[2rem] focus:outline-none focus:ring-8 focus:ring-red-600/5 focus:border-red-600 transition-all text-sm font-bold placeholder:text-slate-400 group-hover:bg-white"
               />
+              {/* Voice Recording Button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Mic button clicked, isRecording:', isRecording);
+                  if (isRecording) {
+                    stopRecording();
+                  } else {
+                    startRecording();
+                  }
+                }}
+                disabled={loading || isTranscribing}
+                className={`absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full transition-all z-10 ${
+                  isRecording 
+                    ? 'bg-red-500 text-white animate-pulse shadow-lg' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-md'
+                } ${(loading || isTranscribing) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                title={isRecording ? 'Arrêter l\'enregistrement' : 'Enregistrer la voix'}
+                style={{ pointerEvents: 'auto' }}
+              >
+                {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              </button>
+              {isTranscribing && (
+                <span className="absolute right-16 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+                  Transcription...
+                </span>
+              )}
             </div>
             <button
               type="submit"
-              disabled={loading || !input.trim()}
+              disabled={loading || !input.trim() || isTranscribing}
               className="px-8 py-4 bg-gradient-to-r from-red-600 to-red-800 text-white font-black uppercase tracking-widest rounded-xl hover:shadow-[0_0_20px_rgba(220,38,38,0.5)] transition-all flex items-center gap-3 disabled:opacity-50 disabled:hover:shadow-none"
             >
               {loading ? (

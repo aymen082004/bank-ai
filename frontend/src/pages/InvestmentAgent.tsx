@@ -6,6 +6,7 @@ import {
   Brain, 
   Search, 
   Mic, 
+  MicOff,
   Send, 
   History, 
   ShieldCheck, 
@@ -44,6 +45,12 @@ export default function InvestmentAgent() {
   const [chartPeriod, setChartPeriod] = useState<'1d' | '1w' | '1m' | '1y'>('1y');
   const [chartData, setChartData] = useState<any[]>([]);
   const [hoveredPoint, setHoveredPoint] = useState<{x: number, y: number, price: number, date: string} | null>(null);
+  
+  // Voice recording states
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -653,8 +660,82 @@ export default function InvestmentAgent() {
     }
   };
 
+  // Voice recording functions
+  const startRecording = async () => {
+    console.log('Starting recording...');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('Microphone access granted');
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        console.log('Data available:', event.data.size);
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        console.log('Recording stopped, processing audio...');
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await transcribeAudio(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+      };
+
+      mediaRecorder.start(100);
+      setIsRecording(true);
+      console.log('Recording started successfully');
+    } catch (err) {
+      console.error('Error accessing microphone:', err);
+      alert('Impossible d\'accéder au microphone. Veuillez vérifier les permissions.');
+    }
+  };
+
+  const stopRecording = () => {
+    console.log('Stopping recording...');
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+
+      const resp = await fetch(`${import.meta.env.VITE_API_URL}/api/agents/bank/transcribe/`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await resp.json();
+      console.log('Transcription response:', data);
+      
+      if (data.text) {
+        setInputValue(prev => prev + (prev ? ' ' : '') + data.text);
+      }
+    } catch (err) {
+      console.error('Transcription error:', err);
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
   // Generate dynamic investment strategy based on stock data
   const generateInvestmentStrategy = (stock: any, prediction: any) => {
+    if (!stock || !prediction) return null;
     const currentPrice = stock?.price || 150;
     const pe = stock?.pe_ratio || 28;
     const change = stock?.change_percent || 2.5;
@@ -851,13 +932,9 @@ export default function InvestmentAgent() {
       <div className="flex h-[calc(100vh-68px)]">
         {/* Sidebar */}
         <aside className={`w-64 flex-shrink-0 border-r ${isDark ? 'bg-[#0B1F3A] border-white/5' : 'bg-white border-gray-200'} p-6 flex flex-col gap-8`}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#bc000c] rounded-lg flex items-center justify-center">
-              <TrendingUp className="text-white" />
-            </div>
+          <div className="flex items-center">
             <div>
-              <h1 className="text-xl font-bold uppercase tracking-tight">BH Intelligence</h1>
-              <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Portefeuille</p>
+              <h1 className="text-xl font-bold uppercase tracking-tight">Agent de Recommandation</h1>
             </div>
           </div>
 
@@ -874,14 +951,14 @@ export default function InvestmentAgent() {
               className={`flex items-center gap-4 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === 'investment' ? 'bg-[#bc000c] text-white' : 'hover:bg-white/5 text-gray-400'}`}
             >
               <Wallet size={20} />
-              <span>Portefeuille</span>
+              <span>Investissement</span>
             </button>
             <button 
               onClick={() => setActiveTab('intelligence')}
               className={`flex items-center gap-4 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === 'intelligence' ? 'bg-[#bc000c] text-white' : 'hover:bg-white/5 text-gray-400'}`}
             >
               <Brain size={20} />
-              <span>Intelligence</span>
+              <span>Assistant</span>
             </button>
           </nav>
 
@@ -1513,8 +1590,26 @@ export default function InvestmentAgent() {
                       placeholder="Posez une question... (ex: Je cherche une voiture à 30000 TND)"
                       className={`flex-1 bg-transparent border-0 focus:ring-0 text-sm py-3 ${isDark ? 'placeholder-gray-500' : 'placeholder-gray-400'}`}
                     />
-                    <button className="p-2 text-gray-500 hover:text-white transition-colors">
-                      <Mic size={20} />
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        console.log('Mic clicked, isRecording:', isRecording);
+                        if (isRecording) {
+                          stopRecording();
+                        } else {
+                          startRecording();
+                        }
+                      }}
+                      disabled={isTranscribing}
+                      className={`p-3 rounded-full transition-all z-10 ${
+                        isRecording 
+                          ? 'bg-red-500 text-white animate-pulse shadow-lg' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-md'
+                      } ${isTranscribing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      title={isRecording ? 'Arrêter l\'enregistrement' : 'Enregistrer la voix'}
+                      style={{ pointerEvents: 'auto' }}
+                    >
+                      {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
                     </button>
                     <button 
                       onClick={handleSendMessage}
