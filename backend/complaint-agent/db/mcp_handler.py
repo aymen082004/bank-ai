@@ -38,6 +38,18 @@ else:
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 
+GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
+GOOGLE_OAUTH_TOKEN_URI = os.getenv("GOOGLE_OAUTH_TOKEN_URI", "https://oauth2.googleapis.com/token")
+
+if not GOOGLE_OAUTH_CLIENT_ID or not GOOGLE_OAUTH_CLIENT_SECRET:
+    from pathlib import Path
+    backend_dotenv = Path(__file__).resolve().parents[2] / ".env"
+    if backend_dotenv.exists():
+        load_dotenv(backend_dotenv)
+        GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
+        GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
+
 
 def _resolve_env_path(value: str | None) -> str | None:
     if not value:
@@ -94,30 +106,8 @@ APP_MONGO_DB_NAME = os.getenv("APP_MONGO_DB_NAME", "bank_ai")
 app_client = MongoClient(APP_MONGO_URI, tls=True, tlsAllowInvalidCertificates=True)
 db = app_client[APP_MONGO_DB_NAME]
 
-GOOGLE_AUTH_MONGO_URI = os.getenv("GOOGLE_AUTH_MONGO_URI")
-GOOGLE_AUTH_MONGO_DB_NAME = os.getenv("GOOGLE_AUTH_MONGO_DB_NAME")
-
-if GOOGLE_AUTH_MONGO_URI:
-    google_auth_client = MongoClient(
-        GOOGLE_AUTH_MONGO_URI, tls=True, tlsAllowInvalidCertificates=True
-    )
-    google_auth_db = google_auth_client[GOOGLE_AUTH_MONGO_DB_NAME]
-else:
-    google_auth_client = None
-    google_auth_db = None
-
 customers_collection = db["customers"]
 complaints_collection = db["complaints"]
-auth_db = google_auth_db if google_auth_db is not None else db
-users_collection = auth_db["users"]
-followup_sessions_collection = auth_db["followup_sessions"]
-conversation_memory_collection = auth_db["conversation_memory"]
-
-try:
-    followup_sessions_collection.create_index("google_id", unique=True)
-    conversation_memory_collection.create_index([("google_id", 1), ("created_at", -1)])
-except Exception:
-    pass
 
 
 def _load_json_string(json_string: str) -> dict | None:
@@ -773,17 +763,24 @@ def _create_google_calendar_event(
     )
     if service is None:
         return None
+    
+    start_time = event_data.get("start")
+    end_time = event_data.get("end")
+    
+    if not start_time or not end_time:
+        print(f"[{datetime.now().isoformat()}] Google Calendar event skipped: missing start/end time")
+        return None
 
     body = {
         "summary": event_data.get("summary", "Bank visit appointment"),
         "description": event_data.get("description", ""),
         "location": event_data.get("location", ""),
         "start": {
-            "dateTime": event_data.get("start"),
+            "dateTime": start_time,
             "timeZone": GOOGLE_CALENDAR_TIMEZONE,
         },
         "end": {
-            "dateTime": event_data.get("end"),
+            "dateTime": end_time,
             "timeZone": GOOGLE_CALENDAR_TIMEZONE,
         },
     }
