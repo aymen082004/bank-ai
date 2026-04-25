@@ -18,7 +18,7 @@ const Login = () => {
     setError('');
     
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login/`, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login/`, {
         identifier,
         password,
       });
@@ -38,7 +38,7 @@ const Login = () => {
     onSuccess: async (tokenResponse) => {
       try {
         setLoading(true);
-        const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/google/`, {
+        const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/google/`, {
           token: tokenResponse.access_token,
         });
         

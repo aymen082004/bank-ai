@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, agent_views
+from . import views, agent_views, transcription_views
 
 urlpatterns = [
     path("auth/register/", views.register, name="register"),
@@ -22,5 +22,7 @@ urlpatterns = [
         agent_views.clear_bank_memory,
         name="clear_bank_memory",
     ),
+    path("agents/bank/transcribe/", transcription_views.transcribe_audio, name="transcribe_audio"),
     path("agents/fraud/", agent_views.fraud_agent_chat, name="fraud_agent_chat"),
+    path("transactions/add/", views.add_transaction, name="add_transaction"),
 ]

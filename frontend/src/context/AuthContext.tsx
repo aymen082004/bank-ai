@@ -7,6 +7,7 @@ export interface User {
   role: string;
   email?: string;
   picture?: string;
+  persona?: 'aggressive' | 'balanced' | 'conservative';
 }
 
 interface AuthContextType {

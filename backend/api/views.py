@@ -12,7 +12,8 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 from django.shortcuts import redirect
 
-from .mongodb import get_users_collection, get_customers_collection
+from .mongodb import get_users_collection, get_customers_collection, MongoDBClient
+from .persona_utils import seed_user_account_data, update_user_persona
 
 load_dotenv()
 
@@ -75,6 +76,15 @@ def register(request):
     result = users_collection.insert_one(new_user)
     new_user["_id"] = result.inserted_id
 
+    # Seed initial account data and calculate persona
+    try:
+        user_id_str = str(new_user["_id"])
+        seeded_data = seed_user_account_data(user_id_str, name)
+        new_user["persona"] = seeded_data["persona"]
+    except Exception as e:
+        print(f"Warning: Failed to seed user data: {e}")
+        new_user["persona"] = "balanced"  # Fallback
+
     token = generate_jwt(new_user)
 
     return Response(
@@ -88,6 +98,7 @@ def register(request):
                 "cin": new_user.get("cin", ""),
                 "customer_id": new_user.get("customer_id", ""),
                 "picture": new_user.get("picture", ""),
+                "persona": new_user.get("persona", "balanced"),
             },
         },
         status=status.HTTP_201_CREATED,
@@ -419,3 +430,64 @@ def mongo_logout(request):
     for key in keys:
         request.session.pop(key, None)
     return redirect("/accounts/login/")
+
+
+@csrf_exempt
+@api_view(["POST"])
+def add_transaction(request):
+    """Add a transaction and recalculate user persona dynamically."""
+    data = request.data
+    user_id = data.get("user_id")
+    description = data.get("description")
+    amount = float(data.get("amount", 0))
+    tx_type = data.get("type", "expense")  # "income" or "expense"
+    category = data.get("category", "General")
+
+    if not user_id or not description:
+        return Response(
+            {"error": "Missing required fields"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        db = MongoDBClient.get_db()
+        
+        # Insert transaction
+        transaction = {
+            "user_id": user_id,
+            "description": description,
+            "amount": amount,
+            "type": tx_type,
+            "category": category,
+            "date": datetime.datetime.utcnow().isoformat(),
+            "created_at": datetime.datetime.utcnow()
+        }
+        db["transactions"].insert_one(transaction)
+
+        # Update account balance
+        account = db["accounts"].find_one({"user_id": user_id})
+        if account:
+            if tx_type == "income":
+                new_balance = account.get("total_liquidity", 0) + amount
+            else:
+                new_balance = account.get("total_liquidity", 0) - amount
+            
+            db["accounts"].update_one(
+                {"user_id": user_id},
+                {"$set": {"total_liquidity": new_balance}}
+            )
+
+        # Recalculate persona
+        new_persona = update_user_persona(user_id)
+
+        return Response({
+            "success": True,
+            "transaction": transaction,
+            "new_persona": new_persona
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

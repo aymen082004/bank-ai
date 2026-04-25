@@ -24,6 +24,8 @@ MONGO_URI = os.getenv(
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+import sys
+sys.path.append(str(BASE_DIR / "pi_integration"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -49,6 +51,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "api",
+    "pi_api",
 ]
 
 MIDDLEWARE = [
@@ -87,10 +90,22 @@ TEMPLATES = [
 ]
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.AllowAny",
     ],
+}
+
+# Database
+# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
 }
 
 # Password validation
