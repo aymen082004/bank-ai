@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Send, User, Bot, Loader2, AlertCircle } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   id: string;
@@ -116,13 +117,21 @@ const ComplaintChat = () => {
                 )}
               </div>
               <div
-                className={`p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
+                className={`p-4 rounded-2xl shadow-sm ${
                   msg.sender === 'user'
                     ? 'bg-[#1c2951] text-white rounded-tr-none'
                     : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
                 }`}
               >
-                {msg.text}
+                {msg.sender === 'agent' ? (
+                  <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-headings:text-[#1c2951] prose-strong:text-[#1c2951] prose-li:text-gray-700">
+                  <ReactMarkdown>
+                    {msg.text}
+                  </ReactMarkdown>
+                </div>
+                ) : (
+                  <span className="text-sm">{msg.text}</span>
+                )}
                 <div
                   className={`text-[10px] mt-2 ${
                     msg.sender === 'user' ? 'text-gray-300' : 'text-gray-400'
