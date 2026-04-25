@@ -1,8 +1,15 @@
 import os
 import requests
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+dotenv_path = Path(__file__).resolve().parents[1] / ".env"
+if not dotenv_path.exists():
+    dotenv_path = Path(__file__).resolve().parents[2] / ".env"
+if dotenv_path.exists():
+    load_dotenv(dotenv_path)
+else:
+    load_dotenv()
 
 API_KEY = os.getenv("MASSIVE_STOCK_API_KEY")
 BASE_URL = "https://api.massive.com"

@@ -319,8 +319,10 @@ def _gauge(val, title, max_val=100, suffix="", h=200):
                       font=dict(family="Plus Jakarta Sans"))
     return fig
 
-def _show(fig):
-    if fig: st.plotly_chart(fig, use_container_width=True)
+def _show(fig, key=None):
+    if fig: 
+        k = key if key else _ukey("chart")
+        st.plotly_chart(fig, use_container_width=True, key=k)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -332,14 +334,19 @@ def _bloc_reclamations_kpis(data):
     _filtre_badge(data)
     nom = data.get("client_nom", "")
     if nom: st.markdown(f'<span class="badge-navy">👤 {nom}</span>', unsafe_allow_html=True)
-    total = data.get("total", 0); ouv = data.get("ouvertes", 0); trt = data.get("traitees", 0)
+    
+    total = int(data.get("total", 0) or 0)
+    ouv = int(data.get("ouvertes", 0) or 0)
+    trt = int(data.get("traitees", 0) or 0)
+    att = max(0, total - ouv - trt)
+    
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("📋 Total réclamations", f"{total:,}")
     c2.metric("🔴 Ouvertes", f"{ouv:,}",
               delta=f"{ouv / total * 100:.1f}%" if total else None, delta_color="inverse")
     c3.metric("✅ Traitées", f"{trt:,}",
               delta=f"{trt / total * 100:.1f}%" if total else None)
-    c4.metric("⏳ En attente", f"{max(0, total - ouv - trt):,}", delta_color="off")
+    c4.metric("⏳ En attente", f"{att:,}", delta_color="off")
 
 def _bloc_reclamations_statut(data):
     lst = _to_list(data)
@@ -398,7 +405,8 @@ def _bloc_delai_resolution(data):
     h_val = float(h_val)
     col1, col2 = st.columns([2, 3])
     with col1:
-        st.plotly_chart(_gauge(round(h_val, 1), "Délai résolution (h)", 120, suffix="h"), use_container_width=True)
+        st.plotly_chart(_gauge(round(h_val, 1), "Délai résolution (h)", 120, suffix="h"), 
+                        use_container_width=True, key=_ukey("gauge_sla"))
     with col2:
         c = "green" if h_val < 24 else "orange" if h_val < 72 else "red"
         _insight(f"**{h_val:.1f}h** — " + ("🟢 Excellent." if h_val < 24 else "🟡 Acceptable." if h_val < 72 else "🔴 SLA dépassé !"), c)
@@ -434,11 +442,17 @@ def _bloc_txn_kpis(data):
     _filtre_badge(data)
     nom = data.get("client_nom", "")
     if nom: st.markdown(f'<span class="badge-navy">👤 {nom}</span>', unsafe_allow_html=True)
+    
+    total = int(data.get('total', 0) or 0)
+    montant = float(data.get('montant', 0) or 0)
+    moy = float(data.get('moy', 0) or 0)
+    max_val = float(data.get('max', 0) or 0)
+    
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("💳 Transactions", f"{data.get('total', 0):,}")
-    c2.metric("💰 Volume total", f"{data.get('montant', 0):,.0f} TND")
-    c3.metric("📊 Montant moyen", f"{data.get('moy', 0):,.0f} TND")
-    c4.metric("📈 Max", f"{data.get('max', 0):,.0f} TND")
+    c1.metric("💳 Transactions", f"{total:,}")
+    c2.metric("💰 Volume total", f"{montant:,.0f} TND")
+    c3.metric("📊 Montant moyen", f"{moy:,.0f} TND")
+    c4.metric("📈 Max", f"{max_val:,.0f} TND")
 
 def _bloc_txn_par_type(data):
     lst = _to_list(data)
@@ -524,11 +538,16 @@ def _bloc_txn_top(data):
 def _bloc_loans_stats(data):
     if not isinstance(data, dict) or data.get("erreur"): return
     _filtre_badge(data)
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("💼 Total prêts", f"{data.get('total_loans', 0):,}")
-    c2.metric("💰 Encours total", f"{data.get('montant_total', 0):,.0f} TND")
-    c3.metric("📊 Montant moyen", f"{data.get('montant_moyen', 0):,.0f} TND")
+    
+    total = int(data.get('total_loans', 0) or 0)
+    montant = float(data.get('montant_total', 0) or 0)
+    moy = float(data.get('montant_moyen', 0) or 0)
     r = float(data.get("taux_remboursement_global", 0) or 0)
+    
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("💼 Total prêts", f"{total:,}")
+    c2.metric("💰 Encours total", f"{montant:,.0f} TND")
+    c3.metric("📊 Montant moyen", f"{moy:,.0f} TND")
     c4.metric("✅ Taux remboursement", f"{r:.1f}%",
               delta="Sain" if r >= 70 else "Vigilance", delta_color="normal" if r >= 70 else "inverse")
 
@@ -697,7 +716,8 @@ def _bloc_recovery_montants(data):
     pct = float(nr) / max(float(total), 1) * 100
     c3.metric("❌ Non remboursés", f"{pct:.1f}%", delta_color="inverse")
     col1, col2 = st.columns([2, 3])
-    with col1: st.plotly_chart(_gauge(round(pct, 1), "% Non remboursés", 100, suffix="%"), use_container_width=True)
+    with col1: st.plotly_chart(_gauge(round(pct, 1), "% Non remboursés", 100, suffix="%"), 
+                               use_container_width=True, key=_ukey("gauge_recovery"))
     with col2:
         c = "red" if pct > 50 else "orange" if pct > 25 else "green"
         _insight(f"**{pct:.1f}%** non remboursés ({int(nr):,} sur {int(total):,}).", c)
@@ -886,7 +906,8 @@ def render_client_complet(data):
     score = cp.get("credit_score", 0) or 0
     if score:
         col_g, col_s = st.columns([1, 2])
-        with col_g: st.plotly_chart(_gauge(score, "Score Crédit", 1000), use_container_width=True)
+        with col_g: st.plotly_chart(_gauge(score, "Score Crédit", 1000), 
+                                   use_container_width=True, key=_ukey("gauge_credit"))
         with col_s:
             c = st.columns(2)
             c[0].metric("Créances impayées", cp.get("num_of_delinquencies", 0))

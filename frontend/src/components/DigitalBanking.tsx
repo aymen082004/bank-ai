@@ -84,7 +84,7 @@ export default function DigitalBanking() {
                     <path d="M3.18 23.76c.3.16.65.18.97.06l11.65-11.65L12 9.37 3.18 23.76zm15.7-12.7L16.1 9.57 3.72.63C3.38.42 2.98.47 2.7.74L15.37 13.4l3.51-2.34zM20.4 10.7l-2.47-1.43-2.6 2.6 2.6 2.6 2.47-1.43c.7-.4.7-1.94 0-2.34zM3.18.24L15.37 12.43 12 9.06.24 23.76c.3.16.65.18.97.06L13.88 12.1.24.24z" />
                   </svg>
                   <div>
-                    <div className="text-[9px] leading-none opacity-70">GET IT ON</div>
+                    <div className="text-[9px] leading-none opacity-70">DISPONIBLE SUR</div>
                     <div className="text-sm font-semibold leading-none">Google Play</div>
                   </div>
                 </a>
@@ -96,7 +96,7 @@ export default function DigitalBanking() {
                     <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-42.8-169.5-123.1C18.7 696.1 0 577.8 0 464c0-149.7 97.6-228.8 193.3-228.8 63.7 0 116.5 42.8 156 42.8 37.7 0 99.9-45 171.1-45 27.5 0 108.2 2.6 168.3 74.3z"/>
                   </svg>
                   <div>
-                    <div className="text-[9px] leading-none opacity-70">Download on the</div>
+                    <div className="text-[9px] leading-none opacity-70">Télécharger sur l'</div>
                     <div className="text-sm font-semibold leading-none">App Store</div>
                   </div>
                 </a>
@@ -135,7 +135,7 @@ export default function DigitalBanking() {
                   <div className="p-4">
                     <div className="flex gap-2 mb-3">
                       <div className="text-yellow-400 text-sm">★ 5.3</div>
-                      <div className="text-gray-400 text-xs">16K reviews</div>
+                      <div className="text-gray-400 text-xs">16K avis</div>
                     </div>
                     <div className="bg-blue-500 text-white text-center py-2 rounded-full text-sm font-semibold mb-4 hover:bg-blue-600 transition-colors">
                       Télécharger

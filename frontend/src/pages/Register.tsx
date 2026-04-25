@@ -35,7 +35,7 @@ const Register = () => {
     
     try {
       if (googleToken) {
-        const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/google/`, {
+        const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/google/`, {
           token: googleToken,
           role: role,
           phone: phone,
@@ -46,7 +46,7 @@ const Register = () => {
         loginState(user, token);
         navigate('/');
       } else {
-        const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register/`, {
+        const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/register/`, {
           name,
           email,
           phone,
@@ -70,7 +70,7 @@ const Register = () => {
       setGoogleToken(tokenResponse.access_token);
       try {
         setLoading(true);
-        const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/google/`, {
+        const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/google/`, {
           token: tokenResponse.access_token,
         });
         

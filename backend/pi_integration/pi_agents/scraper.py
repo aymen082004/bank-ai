@@ -24,18 +24,20 @@ def scrape_automobile_tn(budget, persona, preferences):
         "volkswagen": "german", "vw": "german", "porsche": "german", "opel": "german",
         # French brands
         "renault": "french", "peugeot": "french", "citroen": "french", "citroën": "french",
-        "ds": "french", "alpine": "french",
+        "ds": "french", "alpine": "french", "bugatti": "french",
         # Japanese brands
         "toyota": "japanese", "honda": "japanese", "nissan": "japanese",
-        "mitsubishi": "japanese", "mazda": "japanese", "suzuki": "japanese",
+        "mitsubishi": "japanese", "mazda": "japanese", "suzuki": "japanese", "isuzu": "japanese",
         # Korean brands
-        "kia": "korean", "hyundai": "korean",
+        "kia": "korean", "hyundai": "korean", "ssangyong": "korean", "kg mobility": "korean",
         # American brands
-        "ford": "american", "chevrolet": "american", "jeep": "american",
+        "ford": "american", "chevrolet": "american", "jeep": "american", "tesla": "american",
         # British brands
-        "jaguar": "british", "land rover": "british", "mini": "british",
+        "jaguar": "british", "land rover": "british", "mini": "british", "bentley": "british",
+        "rolls-royce": "british", "aston martin": "british", "mg": "british",
         # Italian brands
-        "fiat": "italian", "alfa romeo": "italian", "lancia": "italian",
+        "fiat": "italian", "alfa romeo": "italian", "lancia": "italian", "ferrari": "italian",
+        "lamborghini": "italian", "maserati": "italian",
         # Chinese brands
         "byd": "chinese", "changan": "chinese", "chery": "chinese",
         "dongfeng": "chinese", "geely": "chinese", "gwm": "chinese",
@@ -46,8 +48,9 @@ def scrape_automobile_tn(budget, persona, preferences):
         "omoda": "chinese", "jaecoo": "chinese", "skoda": "czech",
         "seat": "spanish", "cupra": "spanish", "tata": "indian",
         "volvo": "swedish", "dfsk": "chinese", "dacia": "romanian",
-        "deepal": "chinese", "bako": "chinese", "avantier motors": "chinese",
-        "centra": "chinese"
+        "deepal": "chinese", "bako": "chinese", "avantier": "chinese", "avantier motors": "chinese",
+        "centra": "chinese", "haval": "chinese", "tank": "chinese", "ora": "chinese",
+        "wey": "chinese", "exeed": "chinese", "voyah": "chinese", "zeekr": "chinese"
     }
     
     # List of country/region names that might be set as brand by mistake
@@ -186,14 +189,16 @@ def scrape_automobile_tn(budget, persona, preferences):
                                     url = href if href.startswith('http') else 'https://www.automobile.tn' + href
                             
                             # Extract brand and year
-                            brands = ['audi', 'bmw', 'mercedes', 'toyota', 'honda', 'volkswagen', 'renault', 'peugeot', 
-                                      'skoda', 'seat', 'opel', 'porsche', 'fiat', 'alfa romeo', 'citroen', 'dacia',
-                                      'jaguar', 'land rover', 'volvo', 'nissan', 'hyundai', 'kia', 'mazda', 'mitsubishi']
                             brand = 'Unknown'
                             title_text = (title + ' ' + text).lower()
-                            for b in brands:
+                            
+                            # Use the comprehensive brand_origins list for matching
+                            # Sort by length descending to match "Alfa Romeo" before "Fiat" (if overlap existed)
+                            sorted_brands = sorted(brand_origins.keys(), key=len, reverse=True)
+                            for b in sorted_brands:
                                 if b in title_text:
-                                    brand = b.title()
+                                    brand = b.replace('citroën', 'citroen').title()
+                                    if brand == 'Vw': brand = 'Volkswagen'
                                     break
                             
                             year_match = re.search(r'\b(19\d{2}|20\d{2})\b', title + text)
@@ -230,35 +235,29 @@ def scrape_automobile_tn(budget, persona, preferences):
     except Exception as e:
         print(f"⚠️ Error scraping automobile.tn: {e}")
     
-    # Filter by budget
+    # Filter by budget - Relaxed filter to avoid removing all cars
     if budget and budget > 0:
         original_count = len(listings)
-        listings = [l for l in listings if l.get('price', 0) <= budget]
-        print(f"💰 Filtered by budget ({budget}): {len(listings)}/{original_count} cars remain")
+        # If budget is very low (e.g. monthly budget), allow up to a reasonable car price
+        max_budget = max(budget * 5, 100000)
+        listings = [l for l in listings if l.get('price', 0) <= max_budget]
+        print(f"💰 Filtered by budget (max {max_budget}): {len(listings)}/{original_count} cars remain")
     
     # Filter by brand origin if specified
     if brand_origin:
-        BRAND_ORIGINS = {
-            'audi': 'german', 'bmw': 'german', 'mercedes': 'german', 'mercedes-benz': 'german',
-            'volkswagen': 'german', 'vw': 'german', 'porsche': 'german', 'opel': 'german',
-            'peugeot': 'french', 'citroen': 'french', 'renault': 'french',
-            'skoda': 'czech', 'seat': 'spanish',
-            'fiat': 'italian', 'alfa romeo': 'italian', 'lancia': 'italian',
-            'volvo': 'swedish', 'jaguar': 'british', 'land rover': 'british',
-            'hyundai': 'korean', 'kia': 'korean', 'genesis': 'korean', 'ssangyong': 'korean',
-            'toyota': 'japanese', 'honda': 'japanese', 'nissan': 'japanese', 'mitsubishi': 'japanese', 'mazda': 'japanese', 'subaru': 'japanese', 'lexus': 'japanese',
-            'dacia': 'romanian', 'byd': 'chinese', 'changan': 'chinese', 'chery': 'chinese', 'geely': 'chinese',
-        }
+        brand_origin = brand_origin.lower()
         original_count = len(listings)
         filtered = []
         for l in listings:
-            brand = l.get('brand', 'Unknown').lower()
-            car_origin = BRAND_ORIGINS.get(brand, '')
+            brand_val = l.get('brand', 'Unknown').lower()
+            car_origin = brand_origins.get(brand_val, '')
+            
             if car_origin == brand_origin:
                 filtered.append(l)
-                print(f"   ✅ {brand.title()} - matches {brand_origin}")
+                print(f"   ✅ {brand_val.title()} - matches {brand_origin}")
             else:
-                print(f"   ❌ {brand.title()} - {car_origin} not {brand_origin}")
+                print(f"   ❌ {brand_val.title()} - {car_origin} not {brand_origin}")
+        
         listings = filtered
         print(f"🏳️ Filtered by origin ({brand_origin}): {len(listings)}/{original_count} cars remain")
     
@@ -287,14 +286,14 @@ def scrape_automobile_tn(budget, persona, preferences):
     listings = unique_listings
     print(f"🚗 After deduplication: {len(listings)} unique models")
 
-    # Add metadata and xAI insights for top 6 cars
-    for i, item in enumerate(listings[:6]):
+    # Add metadata and xAI insights
+    for i, item in enumerate(listings[:50]):
         item['goal'] = 'car'
         insights = generate_car_insight(item, i+1, persona)
         item['xai'] = insights['xai']
         item['investment_return'] = insights['investment_return']
     
-    return listings[:6]
+    return listings[:50]
 
 def scrape_tecnocasa_tn(budget, location=None, property_type=None):
     """
@@ -597,8 +596,8 @@ def scrape_tecnocasa_tn(budget, location=None, property_type=None):
     # Build URL with price filters if budget provided
     price_params = []
     if budget and budget > 0:
-        min_price = int(budget * 0.5)  # 50% of budget as min (wider range)
-        max_price = int(budget * 1.5)  # 150% of budget as max (wider range)
+        min_price = int(budget * 0.1)  # 10% of budget as min
+        max_price = int(max(budget * 10, 1000000))  # Relaxed max
         price_params.append(f"min_price={min_price}")
         price_params.append(f"max_price={max_price}")
     
@@ -764,8 +763,8 @@ def scrape_tecnocasa_tn(budget, location=None, property_type=None):
         
         print(f"✅ Scraped {len(listings)} houses from Tecnocasa.tn ({location_key.title()})")
         
-        # Add metadata and xAI insights for top 6 houses
-        for i, item in enumerate(listings[:6]):
+        # Add metadata and xAI insights
+        for i, item in enumerate(listings[:50]):
             item['goal'] = 'house'
             insights = generate_house_insight(item, i+1, None) # Persona handled inside if needed
             item['xai'] = insights['xai']
@@ -776,7 +775,7 @@ def scrape_tecnocasa_tn(budget, location=None, property_type=None):
         import traceback
         traceback.print_exc()
     
-    return listings[:6]
+    return listings[:50]
 
 def generate_car_insight(car, rank, persona):
     """Génère un insight xAI et un rendement d'investissement pour une annonce de voiture."""

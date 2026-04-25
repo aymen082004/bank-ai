@@ -72,7 +72,7 @@ if __name__ == "__main__":
     print("Seeding data for existing user")
     print("=" * 60)
     
-    email = "abbassi20290@gmail.com"
+    email = "dridi.yassine.1@esprit.tn"
     success = seed_existing_user(email)
     
     if success:

@@ -10,7 +10,6 @@ from pi_integration.main import create_graph
 from pi_utils.stock_api import search_tickers, get_ticker_details, get_snapshot_ticker, get_related_companies, get_stock_details
 from pi_utils.yahoo_finance import get_stock_info, get_historical_data, get_financial_ratios, get_recommendations
 from pi_utils.db_mongo import mcp_handle
-from pi_utils.voice import transcribe_tunisian, normalize_intent
 
 # Initialize LangGraph app once
 app = create_graph()
@@ -55,7 +54,7 @@ class DashboardAPIView(APIView):
 
 class ChatAPIView(APIView):
     """
-    Endpoint for handling chat (text/voice transcribed text).
+    Endpoint for handling chat (text).
     """
     def post(self, request):
         user_input = request.data.get("message", "")
@@ -81,11 +80,6 @@ class ChatAPIView(APIView):
             # Use async_to_sync to call the async graph
             final_state = async_to_sync(app.ainvoke)(initial_state)
             
-            print(f"✅ State after processing:")
-            print(f"   - Profile: {final_state.get('profile')}")
-            print(f"   - Persona: {final_state.get('persona')}")
-            print(f"   - Listings count: {len(final_state.get('listings', []))}")
-            
             return Response({
                 "response": final_state.get("explanation"),
                 "recommendations": final_state.get("recommendations"),
@@ -97,37 +91,6 @@ class ChatAPIView(APIView):
         except Exception as e:
             import traceback
             traceback.print_exc()
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-class VoiceAPIView(APIView):
-    """
-    Endpoint for receiving audio and returning transcription.
-    """
-    parser_classes = [MultiPartParser]
-
-    def post(self, request):
-        if 'audio' not in request.FILES:
-            return Response({"error": "Audio file is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        audio_file = request.FILES['audio']
-        
-        # Save to temp file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
-            for chunk in audio_file.chunks():
-                temp_audio.write(chunk)
-            temp_path = temp_audio.name
-
-        try:
-            # Transcribe using Whisper
-            transcription = transcribe_tunisian(temp_path)
-            
-            # Clean up
-            os.remove(temp_path)
-            
-            return Response({"transcription": transcription})
-        except Exception as e:
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class StockSearchAPIView(APIView):
@@ -355,12 +318,16 @@ class StockStrategyAPIView(APIView):
             # 4. Construct Final Response
             data = {
                 "symbol": ticker,
-                "strategy": {
-                    "type": strategy_data["decision"],
-                    "description": strategy_data["explanation"],
-                    "risk_level": strategy_data["risk_level"],
-                    "holding_period": strategy_data["holding_period"],
-                    "confidence": strategy_data["confidence_score"]
+                "strategy": strategy_data.get("explanation", ""),
+                "explanation": strategy_data.get("explanation", ""),
+                "risk_assessment": {
+                    "level": strategy_data.get("risk_level", "MOYEN"),
+                    "color": "text-red-400" if strategy_data.get("risk_level") == "ÉLEVÉ" else "text-emerald-400" if strategy_data.get("risk_level") == "FAIBLE" else "text-yellow-400",
+                    "bg": "bg-red-500/20" if strategy_data.get("risk_level") == "ÉLEVÉ" else "bg-emerald-500/20" if strategy_data.get("risk_level") == "FAIBLE" else "bg-yellow-500/20"
+                },
+                "recommendation": {
+                    "action": strategy_data.get("decision", "HOLD"),
+                    "confidence": strategy_data.get("confidence_score", 80)
                 },
                 "analyst_consensus": recommendations,
                 "key_metrics": {

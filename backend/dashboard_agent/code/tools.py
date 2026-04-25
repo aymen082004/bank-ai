@@ -202,7 +202,7 @@ def reclamations_serie_temporelle(cin: str = "", date_debut: str = "", date_fin:
     fmt = "%Y-%m-%d" if (d1 and d2 and (d2-d1).days < 60) else "%Y-%m"
     match = _build_match(customer_id, d1, d2)
     pipeline = ([{"$match": match}] if match else []) + [
-        {"$group": {"_id": {"$dateToString": {"format": fmt, "date": "$date"}}, "count": {"$sum": 1}}},
+        {"$group": {"_id": {"$dateToString": {"format": fmt, "date": {"$toDate": "$date"}}}, "count": {"$sum": 1}}},
         {"$match": {"_id": {"$ne": None}}}, {"$sort": {"_id": 1}}
     ]
     return json.dumps({"data": aggregate("reclamations", pipeline),
@@ -226,7 +226,7 @@ def delai_moyen_resolution(cin: str = "", date_debut: str = "", date_fin: str = 
     base_filter.update(dm)
     pipeline = [
         {"$match": base_filter},
-        {"$addFields": {"duree_ms": {"$subtract": ["$date_rep", "$date"]}}},
+        {"$addFields": {"duree_ms": {"$subtract": [{"$toDate": "$date_rep"}, {"$toDate": "$date"}]}}},
         {"$match": {"duree_ms": {"$ne": None}}},
         {"$group": {"_id": None, "duree_moy_ms": {"$avg": "$duree_ms"}, "count": {"$sum": 1}}},
         {"$addFields": {"duree_moy_heures": {"$divide": ["$duree_moy_ms", 3600000]}}}
@@ -254,7 +254,7 @@ def reclamations_delai_par_objet(cin: str = "", date_debut: str = "", date_fin: 
     base_filter.update(dm)
     pipeline = [
         {"$match": base_filter},
-        {"$addFields": {"duree_h": {"$divide": [{"$subtract": ["$date_rep","$date"]}, 3600000]}}},
+        {"$addFields": {"duree_h": {"$divide": [{"$subtract": [{"$toDate": "$date_rep"},{"$toDate": "$date"}]}, 3600000]}}},
         {"$group": {"_id": "$objet", "delai_moyen": {"$avg": "$duree_h"}, "count": {"$sum": 1}}},
         {"$match": {"_id": {"$ne": None}}},
         {"$sort": {"delai_moyen": -1}}, {"$limit": 10}
@@ -338,7 +338,7 @@ def transactions_serie_temporelle(cin: str = "", date_debut: str = "", date_fin:
     fmt = "%Y-%m-%d" if (d1 and d2 and (d2-d1).days < 60) else "%Y-%m"
     base = _txn_base_match(customer_id, d1, d2)
     pipeline = ([{"$match": base}] if base else []) + [
-        {"$group": {"_id": {"$dateToString": {"format": fmt, "date": "$date"}},
+        {"$group": {"_id": {"$dateToString": {"format": fmt, "date": {"$toDate": "$date"}}},
                     "nb_transactions": {"$sum": 1}, "montant_total": {"$sum": "$amount"}}},
         {"$match": {"_id": {"$ne": None}}}, {"$sort": {"_id": 1}}
     ]
@@ -357,7 +357,7 @@ def transactions_par_heure(cin: str = "", date_debut: str = "", date_fin: str = 
     d1, d2 = _parse_dates(date_debut or "", date_fin or "")
     base = _txn_base_match(customer_id, d1, d2)
     pipeline = ([{"$match": base}] if base else []) + [
-        {"$group": {"_id": {"$hour": "$date"}, "count": {"$sum": 1}, "total": {"$sum": "$amount"}}},
+        {"$group": {"_id": {"$hour": {"$toDate": "$date"}}, "count": {"$sum": 1}, "total": {"$sum": "$amount"}}},
         {"$match": {"_id": {"$ne": None}}}, {"$sort": {"_id": 1}}
     ]
     return json.dumps({"data": aggregate("bank_transactions", pipeline),

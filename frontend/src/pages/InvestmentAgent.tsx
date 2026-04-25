@@ -1,16 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { 
-  LayoutDashboard, 
-  Wallet, 
-  TrendingUp, 
-  Brain, 
-  Search, 
-  Mic, 
-  MicOff,
-  Send, 
-  History, 
-  ShieldCheck, 
-  ArrowUpRight, 
+import {
+  LayoutDashboard,
+  Wallet,
+  TrendingUp,
+  Brain,
+  Search,
+  Send,
+  History,
+  ShieldCheck,
+  ArrowUpRight,
   ArrowDownRight,
   Info,
   Home,
@@ -36,7 +34,7 @@ export default function InvestmentAgent() {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [transactionsData, setTransactionsData] = useState<any>(null);
   const [, setTrendingStocks] = useState<any[]>([]);
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false);
   const [lstmPrediction, setLSTMPrediction] = useState<any>(null);
   const [xaiInsight, setXAIInsight] = useState<any>(null);
   const [loadingXAI, setLoadingXAI] = useState(false);
@@ -44,14 +42,8 @@ export default function InvestmentAgent() {
   const [analystConsensus, setAnalystConsensus] = useState<any>(null);
   const [chartPeriod, setChartPeriod] = useState<'1d' | '1w' | '1m' | '1y'>('1y');
   const [chartData, setChartData] = useState<any[]>([]);
-  const [hoveredPoint, setHoveredPoint] = useState<{x: number, y: number, price: number, date: string} | null>(null);
-  
-  // Voice recording states
-  const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  
+  const [hoveredPoint, setHoveredPoint] = useState<{ x: number, y: number, price: number, date: string } | null>(null);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -77,28 +69,28 @@ export default function InvestmentAgent() {
   useEffect(() => {
     if (activeTab === 'stock-detail' && selectedStock && typeof window !== 'undefined' && (window as any).ApexCharts) {
       const ApexCharts = (window as any).ApexCharts;
-      
+
       // Generate sample candlestick data
       const generateCandleData = (basePrice: number, days: number) => {
         const data = [];
         let price = basePrice;
         const now = new Date();
-        
+
         for (let i = days; i >= 0; i--) {
           const date = new Date(now);
           date.setDate(date.getDate() - i);
-          
+
           const volatility = price * 0.02;
           const open = price + (Math.random() - 0.5) * volatility;
           const close = open + (Math.random() - 0.5) * volatility;
           const high = Math.max(open, close) + Math.random() * volatility * 0.5;
           const low = Math.min(open, close) - Math.random() * volatility * 0.5;
-          
+
           data.push({
             x: date.getTime(),
             y: [parseFloat(open.toFixed(2)), parseFloat(high.toFixed(2)), parseFloat(low.toFixed(2)), parseFloat(close.toFixed(2))]
           });
-          
+
           price = close;
         }
         return data;
@@ -145,7 +137,7 @@ export default function InvestmentAgent() {
         },
         tooltip: {
           theme: isDark ? 'dark' : 'light',
-          custom: function({seriesIndex, dataPointIndex, w}: any) {
+          custom: function ({ seriesIndex, dataPointIndex, w }: any) {
             const data = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
             if (!data) return '';
             const date = new Date(data.x).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' });
@@ -155,10 +147,10 @@ export default function InvestmentAgent() {
               <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; font-family: system-ui, sans-serif; min-width: 140px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
                 <div style="color: #6B7280; font-size: 12px; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px;">${date}</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; font-size: 13px;">
-                  <span style="color: #6B7280;">Open:</span><span style="color: #111827; text-align: right;">${open.toFixed(2)}</span>
-                  <span style="color: #6B7280;">High:</span><span style="color: #111827; text-align: right;">${high.toFixed(2)}</span>
-                  <span style="color: #6B7280;">Low:</span><span style="color: #111827; text-align: right;">${low.toFixed(2)}</span>
-                  <span style="color: #6B7280;">Close:</span><span style="color: ${color}; font-weight: bold; text-align: right;">${close.toFixed(2)}</span>
+                  <span style="color: #6B7280;">Ouverture:</span><span style="color: #111827; text-align: right;">${open.toFixed(2)}</span>
+                  <span style="color: #6B7280;">Haut:</span><span style="color: #111827; text-align: right;">${high.toFixed(2)}</span>
+                  <span style="color: #6B7280;">Bas:</span><span style="color: #111827; text-align: right;">${low.toFixed(2)}</span>
+                  <span style="color: #6B7280;">Clôture:</span><span style="color: ${color}; font-weight: bold; text-align: right;">${close.toFixed(2)}</span>
                 </div>
               </div>
             `;
@@ -175,15 +167,15 @@ export default function InvestmentAgent() {
             y: parseFloat(p.price.toFixed(2))
           }));
         }
-        
+
         // Fallback: Generate 90 days future prediction data starting from today
         const data = [];
         const now = new Date();
         let price = selectedStock.price || 273;
-        
+
         // Start from today's price
         data.push({ x: now.getTime(), y: parseFloat(price.toFixed(2)) });
-        
+
         // Prediction data (next 90 days)
         for (let i = 1; i <= 90; i++) {
           const date = new Date(now);
@@ -192,13 +184,13 @@ export default function InvestmentAgent() {
           price = price * (1 + 0.001 + (Math.random() - 0.4) * 0.008);
           data.push({ x: date.getTime(), y: parseFloat(price.toFixed(2)) });
         }
-        
+
         return data;
       };
 
       const lstmOptions = {
         series: [{
-          name: 'Prix',
+          name: 'Prix Prédit',
           data: generatePredictionData()
         }],
         chart: {
@@ -248,7 +240,7 @@ export default function InvestmentAgent() {
         },
         tooltip: {
           theme: isDark ? 'dark' : 'light',
-          custom: function({series, seriesIndex, dataPointIndex, w}: any) {
+          custom: function ({ series, seriesIndex, dataPointIndex, w }: any) {
             const data = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
             if (!data) return '';
             const date = new Date(data.x).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
@@ -269,13 +261,13 @@ export default function InvestmentAgent() {
       // Render charts
       const candleContainer = document.querySelector('#candlestick-chart');
       const lstmContainer = document.querySelector('#lstm-prediction-chart');
-      
+
       if (candleContainer) {
         candleContainer.innerHTML = '';
         const candleChart = new ApexCharts(candleContainer, candleOptions);
         candleChart.render();
       }
-      
+
       if (lstmContainer) {
         // Clear any existing chart completely
         while (lstmContainer.firstChild) {
@@ -294,7 +286,7 @@ export default function InvestmentAgent() {
           const rect = canvas.parentElement?.getBoundingClientRect();
           const width = rect ? rect.width : canvas.clientWidth || 800;
           const height = rect ? rect.height : canvas.clientHeight || 400;
-          
+
           if (width > 0 && height > 0) {
             canvas.width = width;
             canvas.height = height;
@@ -305,11 +297,11 @@ export default function InvestmentAgent() {
           const chartHeight = canvas.height - padding.top - padding.bottom;
 
           // Generate chart data based on selected period
-          const newChartData: {price: number, date: string}[] = [];
+          const newChartData: { price: number, date: string }[] = [];
           const dataPoints = chartPeriod === '1d' ? 24 : chartPeriod === '1w' ? 7 : chartPeriod === '1m' ? 30 : 100;
           let price = selectedStock.price || 273;
           const now = new Date();
-          
+
           // Work backwards from current price
           for (let i = 0; i < dataPoints; i++) {
             let dateStr = '';
@@ -330,13 +322,13 @@ export default function InvestmentAgent() {
               const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
               dateStr = `${d.getDate()} ${months[d.getMonth()]}`;
             }
-            
+
             newChartData.unshift({ price, date: dateStr });
             // Different volatility for different periods
             const volatility = chartPeriod === '1d' ? 0.005 : chartPeriod === '1w' ? 0.015 : chartPeriod === '1m' ? 0.02 : 0.025;
             price = price / (1 + (Math.random() - 0.48) * volatility);
           }
-          
+
           setChartData(newChartData);
 
           const prices = newChartData.map(d => d.price);
@@ -371,24 +363,24 @@ export default function InvestmentAgent() {
             gradient.addColorStop(0, 'rgba(5, 150, 105, 0.5)');
             gradient.addColorStop(1, 'rgba(5, 150, 105, 0.1)');
           }
-          
+
           ctx.beginPath();
           ctx.moveTo(getX(0), getY(newChartData[0].price));
-          
+
           // Draw smooth curve through points
           for (let i = 1; i < newChartData.length; i++) {
             const x = getX(i);
             const y = getY(newChartData[i].price);
             ctx.lineTo(x, y);
           }
-          
+
           // Close path for fill
           ctx.lineTo(getX(newChartData.length - 1), padding.top + chartHeight);
           ctx.lineTo(getX(0), padding.top + chartHeight);
           ctx.closePath();
           ctx.fillStyle = gradient;
           ctx.fill();
-          
+
           // Draw the line on top
           ctx.beginPath();
           ctx.moveTo(getX(0), getY(newChartData[0].price));
@@ -417,7 +409,7 @@ export default function InvestmentAgent() {
           ctx.textAlign = 'center';
           const labelCount = Math.min(3, newChartData.length);
           const step = Math.max(1, Math.floor(newChartData.length / (labelCount - 1)));
-          
+
           for (let i = 0; i < labelCount; i++) {
             const idx = Math.min(i * step, newChartData.length - 1);
             const x = getX(idx);
@@ -432,15 +424,15 @@ export default function InvestmentAgent() {
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-            
+
             // Find nearest data point
             const relativeX = x - padding.left;
             const index = Math.round((relativeX / chartWidth) * (newChartData.length - 1));
-            
+
             if (index >= 0 && index < newChartData.length) {
               const pointX = getX(index);
               const pointY = getY(newChartData[index].price);
-              
+
               // Check if mouse is close to the line
               const distance = Math.abs(x - pointX);
               if (distance < 20 && y >= padding.top && y <= padding.top + chartHeight) {
@@ -570,7 +562,7 @@ export default function InvestmentAgent() {
       const res = await fetch(`${API_BASE_URL}/stocks/${ticker}/`);
       const data = await res.json();
       setSelectedStock(data);
-      
+
       // Fetch all related data in parallel
       await Promise.all([
         fetchLSTMPrediction(ticker),
@@ -578,7 +570,7 @@ export default function InvestmentAgent() {
         fetchAnalystConsensus(ticker),
         fetchStockMetrics(ticker)
       ]);
-      
+
       setSearchResults([]);
       setSearchQuery('');
       setActiveTab('stock-detail');
@@ -602,19 +594,19 @@ export default function InvestmentAgent() {
   // Generate XAI insight after data is loaded
   const generateXAIInsight = () => {
     if (!selectedStock) return;
-    
+
     const stock = selectedStock;
     const prediction = lstmPrediction;
-    
+
     const xaiData = {
       strategy: generateInvestmentStrategy(stock, prediction),
       explanation: generateXAIExplanation(stock, prediction),
       risk_assessment: assessRisk(stock, prediction),
       recommendation: generateRecommendation(stock, prediction)
     };
-    
+
     setXAIInsight(xaiData);
-    
+
     // Also set analyst consensus if not already set
     if (!analystConsensus) {
       setAnalystConsensus({
@@ -627,7 +619,7 @@ export default function InvestmentAgent() {
         confidence: xaiData.recommendation.confidence
       });
     }
-    
+
     // Set stock metrics if not already set
     if (!stockMetrics) {
       setStockMetrics({
@@ -643,7 +635,7 @@ export default function InvestmentAgent() {
   const fetchXAIInsight = async (ticker: string) => {
     setLoadingXAI(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/stocks/${ticker}/xai/`);
+      const res = await fetch(`${API_BASE_URL}/stocks/${ticker}/strategy/`);
       const data = await res.json();
       if (!data.error) {
         setXAIInsight(data);
@@ -661,77 +653,7 @@ export default function InvestmentAgent() {
   };
 
   // Voice recording functions
-  const startRecording = async () => {
-    console.log('Starting recording...');
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('Microphone access granted');
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (event) => {
-        console.log('Data available:', event.data.size);
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        console.log('Recording stopped, processing audio...');
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await transcribeAudio(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorder.onerror = (event) => {
-        console.error('MediaRecorder error:', event);
-      };
-
-      mediaRecorder.start(100);
-      setIsRecording(true);
-      console.log('Recording started successfully');
-    } catch (err) {
-      console.error('Error accessing microphone:', err);
-      alert('Impossible d\'accéder au microphone. Veuillez vérifier les permissions.');
-    }
-  };
-
-  const stopRecording = () => {
-    console.log('Stopping recording...');
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const transcribeAudio = async (audioBlob: Blob) => {
-    setIsTranscribing(true);
-    try {
-      const token = localStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.webm');
-
-      const resp = await fetch(`${import.meta.env.VITE_API_URL}/api/agents/bank/transcribe/`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      const data = await resp.json();
-      console.log('Transcription response:', data);
-      
-      if (data.text) {
-        setInputValue(prev => prev + (prev ? ' ' : '') + data.text);
-      }
-    } catch (err) {
-      console.error('Transcription error:', err);
-    } finally {
-      setIsTranscribing(false);
-    }
-  };
 
   // Generate dynamic investment strategy based on stock data
   const generateInvestmentStrategy = (stock: any, prediction: any) => {
@@ -742,13 +664,13 @@ export default function InvestmentAgent() {
     const trend = prediction?.trend || 'UP';
     const predictedChange = prediction?.change_percent || (8 + Math.random() * 12);
     const confidence = prediction?.confidence || 0.82;
-    
+
     let strategy = '';
-    
+
     if (trend === 'STRONG_UP' && pe < 30) {
       strategy = `Fort potentiel haussier détecté. À ${currentPrice.toFixed(2)} TND, l'action présente une valorisation attractive (P/E: ${pe.toFixed(1)}) avec une tendance LSTM confirmée. Projection: +${predictedChange.toFixed(1)}% à 90 jours (confiance: ${Math.round(confidence * 100)}%). Recommandation: Accumulation progressive sur les phases de faiblesse.`;
     } else if (trend === 'UP') {
-      strategy = `Momentum positif identifié. Prix actuel ${currentPrice.toFixed(2)} TND avec ${change >= 0 ? '+' : ''}${change.toFixed(2)}% de performance récente. Le modèle prévoit +${predictedChange.toFixed(1)}% de croissance. Stratégie: Achats sélectifs à la baisse, objectif de sortie à ${(currentPrice * (1 + predictedChange/100)).toFixed(2)} TND.`;
+      strategy = `Momentum positif identifié. Prix actuel ${currentPrice.toFixed(2)} TND avec ${change >= 0 ? '+' : ''}${change.toFixed(2)}% de performance récente. Le modèle prévoit +${predictedChange.toFixed(1)}% de croissance. Stratégie: Achats sélectifs à la baisse, objectif de sortie à ${(currentPrice * (1 + predictedChange / 100)).toFixed(2)} TND.`;
     } else if (trend === 'DOWN' && change > -5) {
       strategy = `Correction technique en cours. Le prix ${currentPrice.toFixed(2)} TND offre une opportunité d'entrée si support tenu. Attendez un signal de retournement avant positionnement. Stop-loss recommandé: ${(currentPrice * 0.95).toFixed(2)} TND.`;
     } else if (trend === 'STRONG_DOWN') {
@@ -756,7 +678,7 @@ export default function InvestmentAgent() {
     } else {
       strategy = `Phase de consolidation. Prix ${currentPrice.toFixed(2)} TND - absence de direction claire. Surveillez la cassure des niveaux ${(currentPrice * 1.05).toFixed(2)} TND (résistance) et ${(currentPrice * 0.95).toFixed(2)} TND (support) pour orientation.`;
     }
-    
+
     return strategy;
   };
 
@@ -767,28 +689,28 @@ export default function InvestmentAgent() {
     const change = prediction?.change_percent || (5 + Math.random() * 10);
     const stockName = stock?.name || stock?.symbol || 'cette action';
     const currentPrice = stock?.price || 150;
-    const targetPrice = prediction?.predicted_final_price || currentPrice * (1 + change/100);
+    const targetPrice = prediction?.predicted_final_price || currentPrice * (1 + change / 100);
     const pe = stock?.pe_ratio || 25;
-    
+
     let analysis = '';
     let factors = [];
-    
+
     // Build factors list based on metrics
     if (pe < 20) factors.push('valorisation attractive (P/E faible)');
     else if (pe > 35) factors.push('valorisation élevée (attention au P/E)');
     else factors.push('valorisation modérée');
-    
+
     if (stock?.change_percent > 3) factors.push('forte performance récente');
     else if (stock?.change_percent > 0) factors.push('momentum positif');
     else if (stock?.change_percent < -3) factors.push('correction récente à surveiller');
-    
+
     if (trend === 'STRONG_UP') factors.push('tendance haussière confirmée par LSTM');
     else if (trend === 'UP') factors.push('signal haussier LSTM');
     else if (trend === 'DOWN') factors.push('signal baissier détecté');
-    
+
     if (confidence > 80) factors.push('forte confiance prédictive');
     else if (confidence > 60) factors.push('confiance modérée');
-    
+
     // Build detailed analysis
     if (trend.includes('UP')) {
       analysis = `L'analyse XAI de ${stockName} révèle un scénario favorable. Actuellement à ${currentPrice.toFixed(2)} TND, l'action présente ${factors.join(', ')}. Le modèle LSTM, entraîné sur 90 jours de données, projette un objectif de ${targetPrice.toFixed(2)} TND (+${change.toFixed(1)}%) avec ${confidence}% de certitude. Les indicateurs techniques confirment ce momentum haussier.`;
@@ -797,7 +719,7 @@ export default function InvestmentAgent() {
     } else {
       analysis = `L'analyse XAI de ${stockName} montre une configuration équilibrée. Au prix de ${currentPrice.toFixed(2)} TND, l'action combine ${factors.join(', ')}. Le modèle LSTM prévoit une variation de ${change >= 0 ? '+' : ''}${change.toFixed(1)}% avec ${confidence}% de confiance. La direction dépendra des prochaines cassures de niveaux techniques.`;
     }
-    
+
     return analysis;
   };
 
@@ -805,7 +727,7 @@ export default function InvestmentAgent() {
   const assessRisk = (stock: any, prediction: any) => {
     const beta = stock?.beta || 1;
     const volatility = prediction?.confidence ? (1 - prediction.confidence) * 100 : 20;
-    
+
     if (beta > 1.5 || volatility > 40) return { level: 'ÉLEVÉ', color: 'text-red-400', bg: 'bg-red-500/20' };
     if (beta > 1.2 || volatility > 25) return { level: 'MOYEN', color: 'text-yellow-400', bg: 'bg-yellow-500/20' };
     return { level: 'FAIBLE', color: 'text-emerald-400', bg: 'bg-emerald-500/20' };
@@ -815,7 +737,7 @@ export default function InvestmentAgent() {
   const generateRecommendation = (stock: any, prediction: any) => {
     const trend = prediction?.trend || 'UP';
     const confidence = prediction?.confidence || 0.8;
-    
+
     if ((trend === 'STRONG_UP' || trend === 'UP') && confidence > 0.75) {
       return { action: 'ACHETER', color: 'text-emerald-400', confidence: Math.round(confidence * 100) };
     } else if (trend === 'DOWN' && confidence > 0.7) {
@@ -827,7 +749,7 @@ export default function InvestmentAgent() {
   // Fetch analyst consensus data
   const fetchAnalystConsensus = async (ticker: string) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/stocks/${ticker}/recommendations/`);
+      const res = await fetch(`${API_BASE_URL}/stocks/${ticker}/yahoo/?type=recommendations`);
       const data = await res.json();
       if (!data.error && data.recommendations) {
         setAnalystConsensus(data.recommendations);
@@ -860,7 +782,7 @@ export default function InvestmentAgent() {
   // Fetch stock metrics
   const fetchStockMetrics = async (ticker: string) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/stocks/${ticker}/financials/`);
+      const res = await fetch(`${API_BASE_URL}/stocks/${ticker}/yahoo/?type=financials`);
       const data = await res.json();
       if (!data.error) {
         setStockMetrics(data);
@@ -896,7 +818,7 @@ export default function InvestmentAgent() {
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
-    
+
     const userMsg = { text: inputValue, isAi: false };
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
@@ -911,8 +833,8 @@ export default function InvestmentAgent() {
       const data = await res.json();
       // Process thinking tags to French
       const cleanedResponse = processThinking(data.response || '');
-      setMessages(prev => [...prev, { 
-        text: cleanedResponse, 
+      setMessages(prev => [...prev, {
+        text: cleanedResponse,
         isAi: true,
         stocks: data.stocks,
         recommendations: data.recommendations,
@@ -939,21 +861,21 @@ export default function InvestmentAgent() {
           </div>
 
           <nav className="flex flex-col gap-2">
-            <button 
+            <button
               onClick={() => setActiveTab('dashboard')}
               className={`flex items-center gap-4 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === 'dashboard' ? 'bg-[#bc000c] text-white' : 'hover:bg-white/5 text-gray-400'}`}
             >
               <LayoutDashboard size={20} />
               <span>Dashboard</span>
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('investment')}
               className={`flex items-center gap-4 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === 'investment' ? 'bg-[#bc000c] text-white' : 'hover:bg-white/5 text-gray-400'}`}
             >
               <Wallet size={20} />
               <span>Investissement</span>
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('intelligence')}
               className={`flex items-center gap-4 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === 'intelligence' ? 'bg-[#bc000c] text-white' : 'hover:bg-white/5 text-gray-400'}`}
             >
@@ -978,8 +900,8 @@ export default function InvestmentAgent() {
             <div className="flex-1 max-w-md">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
                   placeholder="Rechercher des actions (ex: AAPL)..."
@@ -988,7 +910,7 @@ export default function InvestmentAgent() {
                 {searchResults.length > 0 && (
                   <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl border shadow-2xl overflow-hidden ${isDark ? 'bg-[#0B1F3A] border-white/10' : 'bg-white border-gray-200'}`}>
                     {searchResults.map((stock) => (
-                      <button 
+                      <button
                         key={stock.symbol}
                         onClick={() => handleSelectStock(stock.symbol)}
                         className={`w-full text-left px-6 py-3 hover:bg-[#bc000c] hover:text-white transition-colors flex items-center justify-between`}
@@ -1006,7 +928,7 @@ export default function InvestmentAgent() {
             </div>
 
             <div className="flex items-center gap-4">
-              <button 
+              <button
                 onClick={() => setIsDark(!isDark)}
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isDark ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-100 hover:bg-gray-200'}`}
               >
@@ -1038,7 +960,7 @@ export default function InvestmentAgent() {
                       <Wallet size={32} />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div className={`p-6 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-50'} space-y-3`}>
                       <p className="text-xs font-bold uppercase text-gray-500">Budget Mensuel</p>
@@ -1078,7 +1000,7 @@ export default function InvestmentAgent() {
                           <p className="text-xs text-gray-500">Total Dépenses</p>
                         </div>
                       </div>
-                      
+
                       <div className="space-y-4">
                         {[
                           { label: 'Food', sublabel: 'Alimentation', amount: 4000, percent: 62.3, color: 'bg-[#bc000c]' },
@@ -1239,13 +1161,13 @@ export default function InvestmentAgent() {
                     <Brain size={20} className="text-[#bc000c]" />
                     <h3 className="text-sm font-bold uppercase tracking-wider">Analyse IA du Portefeuille</h3>
                   </div>
-                  
+
                   {/* Persona-Based Analysis */}
                   {(() => {
                     const persona = dashboardData?.persona || user?.persona || 'balanced';
                     const balance = dashboardData?.total_liquidity || 28810;
                     const monthlyBudget = dashboardData?.monthly_budget || 2000;
-                    
+
                     // Generate recommendations based on persona
                     const recommendations = {
                       conservative: {
@@ -1282,9 +1204,9 @@ export default function InvestmentAgent() {
                         risk: 'Élevé'
                       }
                     };
-                    
+
                     const analysis = recommendations[persona as keyof typeof recommendations] || recommendations.balanced;
-                    
+
                     return (
                       <div className="space-y-6">
                         {/* Analysis Summary */}
@@ -1293,17 +1215,16 @@ export default function InvestmentAgent() {
                             <span className="px-3 py-1 bg-[#bc000c] text-white text-xs font-bold rounded-full">
                               {analysis.title}
                             </span>
-                            <span className={`px-3 py-1 text-xs font-bold rounded-full ${
-                              analysis.risk === 'Faible' ? 'bg-emerald-500/20 text-emerald-400' :
+                            <span className={`px-3 py-1 text-xs font-bold rounded-full ${analysis.risk === 'Faible' ? 'bg-emerald-500/20 text-emerald-400' :
                               analysis.risk === 'Élevé' ? 'bg-red-500/20 text-red-400' :
-                              'bg-yellow-500/20 text-yellow-400'
-                            }`}>
+                                'bg-yellow-500/20 text-yellow-400'
+                              }`}>
                               Risque: {analysis.risk}
                             </span>
                           </div>
                           <p className="text-sm text-gray-400">{analysis.description}</p>
                         </div>
-                        
+
                         {/* Recommended Allocation */}
                         <div>
                           <p className="text-xs font-bold text-gray-500 uppercase mb-3">Allocation Recommandée</p>
@@ -1337,13 +1258,13 @@ export default function InvestmentAgent() {
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Recommended Actions */}
                         <div>
                           <p className="text-xs font-bold text-gray-500 uppercase mb-3">Recommandations Personnalisées</p>
                           <div className="space-y-2">
                             {analysis.actions.map((rec, idx) => (
-                              <div 
+                              <div
                                 key={idx}
                                 onClick={() => handleSelectStock(rec.stock)}
                                 className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'}`}
@@ -1357,12 +1278,14 @@ export default function InvestmentAgent() {
                                     <p className="text-xs text-gray-500">{rec.reason}</p>
                                   </div>
                                 </div>
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                  rec.action === 'BUY' ? 'bg-emerald-500/20 text-emerald-400' :
-                                  rec.action === 'SELL' || rec.action === 'REDUCE' ? 'bg-red-500/20 text-red-400' :
-                                  'bg-yellow-500/20 text-yellow-400'
-                                }`}>
-                                  {rec.action}
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${rec.action === 'BUY' || rec.action === 'ACHETER' ? 'bg-emerald-500/20 text-emerald-400' :
+                                  rec.action === 'SELL' || rec.action === 'VENDRE' || rec.action === 'REDUCE' || rec.action === 'RÉDUIRE' ? 'bg-red-500/20 text-red-400' :
+                                    'bg-yellow-500/20 text-yellow-400'
+                                  }`}>
+                                  {rec.action === 'BUY' || rec.action === 'ACHETER' ? 'ACHETER' : 
+                                   rec.action === 'SELL' || rec.action === 'VENDRE' ? 'VENDRE' : 
+                                   rec.action === 'REDUCE' || rec.action === 'RÉDUIRE' ? 'RÉDUIRE' : 
+                                   rec.action === 'HOLD' || rec.action === 'ATTENDRE' ? 'ATTENDRE' : rec.action}
                                 </span>
                               </div>
                             ))}
@@ -1379,7 +1302,7 @@ export default function InvestmentAgent() {
                     <Activity size={20} className="text-[#bc000c]" />
                     <h3 className="text-sm font-bold uppercase tracking-wider">Actions Tendances</h3>
                   </div>
-                  
+
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
@@ -1392,30 +1315,30 @@ export default function InvestmentAgent() {
                         </tr>
                       </thead>
                       <tbody className="space-y-2">
-                      {[
-                        { symbol: 'AAPL', name: 'Apple Inc.', price: 273.03, change: -0.03, changePct: -0.01 },
-                        { symbol: 'TSLA', name: 'Tesla, Inc.', price: 377.10, change: -10.41, changePct: -2.69 },
-                        { symbol: 'MSFT', name: 'Microsoft Corporation', price: 417.10, change: -15.82, changePct: -3.65 },
-                        { symbol: 'GOOGL', name: 'Alphabet Inc.', price: 340.41, change: +1.09, changePct: +0.32 },
-                        { symbol: 'NVDA', name: 'NVIDIA Corporation', price: 201.67, change: -0.91, changePct: -0.45 },
-                        { symbol: 'AMZN', name: 'Amazon.com, Inc.', price: 258.22, change: +1.26, changePct: +0.50 },
-                      ].map((stock) => (
-                        <tr 
-                          key={stock.symbol}
-                          onClick={() => handleSelectStock(stock.symbol)}
-                          className="cursor-pointer hover:bg-white/5 transition-colors"
-                        >
-                          <td className="py-3 font-bold text-[#bc000c]">{stock.symbol}</td>
-                          <td className="py-3 text-sm">{stock.name}</td>
-                          <td className="py-3 text-right font-bold">{stock.price.toFixed(2)} TND</td>
-                          <td className={`py-3 text-right ${stock.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)}
-                          </td>
-                          <td className={`py-3 text-right ${stock.changePct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {stock.changePct >= 0 ? '+' : ''}{stock.changePct.toFixed(2)}%
-                          </td>
-                        </tr>
-                      ))}
+                        {[
+                          { symbol: 'AAPL', name: 'Apple Inc.', price: 273.03, change: -0.03, changePct: -0.01 },
+                          { symbol: 'TSLA', name: 'Tesla, Inc.', price: 377.10, change: -10.41, changePct: -2.69 },
+                          { symbol: 'MSFT', name: 'Microsoft Corporation', price: 417.10, change: -15.82, changePct: -3.65 },
+                          { symbol: 'GOOGL', name: 'Alphabet Inc.', price: 340.41, change: +1.09, changePct: +0.32 },
+                          { symbol: 'NVDA', name: 'NVIDIA Corporation', price: 201.67, change: -0.91, changePct: -0.45 },
+                          { symbol: 'AMZN', name: 'Amazon.com, Inc.', price: 258.22, change: +1.26, changePct: +0.50 },
+                        ].map((stock) => (
+                          <tr
+                            key={stock.symbol}
+                            onClick={() => handleSelectStock(stock.symbol)}
+                            className="cursor-pointer hover:bg-white/5 transition-colors"
+                          >
+                            <td className="py-3 font-bold text-[#bc000c]">{stock.symbol}</td>
+                            <td className="py-3 text-sm">{stock.name}</td>
+                            <td className="py-3 text-right font-bold">{stock.price.toFixed(2)} TND</td>
+                            <td className={`py-3 text-right ${stock.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)}
+                            </td>
+                            <td className={`py-3 text-right ${stock.changePct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {stock.changePct >= 0 ? '+' : ''}{stock.changePct.toFixed(2)}%
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -1441,25 +1364,25 @@ export default function InvestmentAgent() {
                       <Brain size={48} className="mx-auto text-[#bc000c] mb-4" />
                       <h3 className="text-xl font-bold mb-2">Bienvenue dans l'Intelligence Artificielle</h3>
                       <p className="text-gray-400 max-w-md mx-auto">
-                        Je peux vous aider à trouver une voiture, une maison, ou des opportunités d'investissement. 
-                        Essayez : "Je cherche une voiture française à 30000 TND" ou "Recommande-moi des actions tech"
+                        Je peux vous aider à trouver une voiture, une maison, ou des opportunités d'investissement.
+                        Essayez : "Je cherche une voiture française " ou "Je cherche une maison"
                       </p>
                     </div>
                   )}
-                  
+
                   {messages.map((msg, idx) => (
                     <div key={idx} className={`flex ${msg.isAi ? 'justify-start' : 'justify-end'} animate-in fade-in slide-in-from-bottom-2`}>
                       <div className={`max-w-[85%] p-4 rounded-2xl ${msg.isAi ? (isDark ? 'bg-white/5 border border-white/10' : 'bg-gray-100') : 'bg-[#bc000c] text-white'}`}>
                         {/* Message Text */}
-                        <div 
+                        <div
                           className="text-sm leading-relaxed whitespace-pre-wrap prose prose-invert max-w-none"
-                          dangerouslySetInnerHTML={{ 
+                          dangerouslySetInnerHTML={{
                             __html: msg.text
                               .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                               .replace(/\n/g, '<br/>')
                           }}
                         />
-                        
+
                         {/* Recommendations Display */}
                         {msg.isAi && msg.recommendations && msg.recommendations.length > 0 && (
                           <div className="mt-4 space-y-2">
@@ -1467,12 +1390,14 @@ export default function InvestmentAgent() {
                             {msg.recommendations.map((rec: any, ridx: number) => (
                               <div key={ridx} className={`p-3 rounded-xl ${isDark ? 'bg-black/30' : 'bg-gray-200'}`}>
                                 <div className="flex items-center gap-2 mb-1">
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                    rec.decision === 'BUY' ? 'bg-emerald-500/20 text-emerald-400' :
-                                    rec.decision === 'SELL' ? 'bg-red-500/20 text-red-400' :
-                                    'bg-yellow-500/20 text-yellow-400'
-                                  }`}>
-                                    {rec.decision}
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${rec.decision === 'BUY' || rec.decision === 'ACHETER' ? 'bg-emerald-500/20 text-emerald-400' :
+                                    rec.decision === 'SELL' || rec.decision === 'VENDRE' || rec.decision === 'ÉVITER' ? 'bg-red-500/20 text-red-400' :
+                                      'bg-yellow-500/20 text-yellow-400'
+                                    }`}>
+                                    {rec.decision === 'BUY' || rec.decision === 'ACHETER' ? 'ACHETER' : 
+                                     rec.decision === 'SELL' || rec.decision === 'VENDRE' ? 'VENDRE' : 
+                                     rec.decision === 'HOLD' || rec.decision === 'ATTENDRE' ? 'ATTENDRE' : 
+                                     rec.decision === 'CONSIDER' || rec.decision === 'CONSIDÉRER' || rec.decision === 'SURVEILLER' ? 'SURVEILLER' : rec.decision}
                                   </span>
                                   <span className="font-bold text-sm">{rec.asset}</span>
                                 </div>
@@ -1481,14 +1406,14 @@ export default function InvestmentAgent() {
                             ))}
                           </div>
                         )}
-                        
+
                         {/* Car/House Listings - Property Cards */}
                         {msg.isAi && msg.listings && msg.listings.length > 0 && (
                           <div className="mt-6">
                             <p className="text-xs font-bold text-gray-500 uppercase mb-4">Annonces trouvées ({msg.listings.length})</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {msg.listings.slice(0, 6).map((listing: any, lidx: number) => (
-                                <a 
+                                <a
                                   key={lidx}
                                   href={listing.url}
                                   target="_blank"
@@ -1497,7 +1422,7 @@ export default function InvestmentAgent() {
                                 >
                                   {/* Property Image */}
                                   <div className="relative h-40 overflow-hidden">
-                                    <img 
+                                    <img
                                       src={listing.image || `https://picsum.photos/400/250?random=${lidx}`}
                                       alt={listing.title}
                                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
@@ -1514,12 +1439,12 @@ export default function InvestmentAgent() {
                                       </span>
                                     </div>
                                   </div>
-                                  
+
                                   {/* Property Info */}
                                   <div className="p-4">
                                     <h4 className="font-bold text-sm mb-1 line-clamp-1">{listing.title}</h4>
                                     <p className="text-xs text-gray-500 mb-3">{listing.location || 'Tunisia'}</p>
-                                    
+
                                     <div className="flex items-center justify-between">
                                       <p className="text-lg font-black text-[#bc000c]">{listing.price?.toLocaleString()} TND</p>
                                       {listing.investment_return && (
@@ -1528,7 +1453,7 @@ export default function InvestmentAgent() {
                                         </span>
                                       )}
                                     </div>
-                                    
+
                                     <button className="w-full mt-4 py-2 bg-white/5 hover:bg-[#bc000c] text-xs font-bold uppercase tracking-wider rounded-lg transition-colors">
                                       Voir détails de la propriété
                                     </button>
@@ -1538,12 +1463,12 @@ export default function InvestmentAgent() {
                             </div>
                           </div>
                         )}
-                        
+
                         {/* Stock Recommendations */}
                         {msg.isAi && msg.stocks && msg.stocks.length > 0 && (
                           <div className="mt-4 flex flex-wrap gap-2">
                             {msg.stocks.map((stock: any) => (
-                              <button 
+                              <button
                                 key={stock.symbol}
                                 onClick={() => handleSelectStock(stock.symbol)}
                                 className="px-3 py-1.5 bg-white/10 rounded-lg text-xs font-bold hover:bg-[#bc000c] transition-all uppercase"
@@ -1553,19 +1478,19 @@ export default function InvestmentAgent() {
                             ))}
                           </div>
                         )}
-                        
+
                         {/* Profile Info */}
                         {msg.isAi && msg.profile && msg.profile.goal && (
                           <div className="mt-3 pt-3 border-t border-white/10">
                             <p className="text-[10px] text-gray-500">
-                              Profil: {msg.profile.goal} {msg.persona && `• Persona: ${msg.persona}`}
+                              Profil: {msg.profile.goal} {msg.persona && `• Persona: ${msg.persona === 'balanced' ? 'équilibré' : msg.persona === 'aggressive' ? 'agressif' : 'conservateur'}`}
                             </p>
                           </div>
                         )}
                       </div>
                     </div>
                   ))}
-                  
+
                   {isThinking && (
                     <div className="flex justify-start">
                       <div className={`p-4 rounded-2xl ${isDark ? 'bg-white/5 border border-white/10' : 'bg-gray-100'} flex items-center gap-2`}>
@@ -1582,36 +1507,16 @@ export default function InvestmentAgent() {
                 {/* Input Area */}
                 <div className={`p-4 rounded-2xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-gray-100 border-gray-200'}`}>
                   <div className="flex items-center gap-3">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                      placeholder="Posez une question... (ex: Je cherche une voiture à 30000 TND)"
+                      placeholder="Posez une question... (ex: Je cherche une voiture , Je cherche une maison )"
                       className={`flex-1 bg-transparent border-0 focus:ring-0 text-sm py-3 ${isDark ? 'placeholder-gray-500' : 'placeholder-gray-400'}`}
                     />
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        console.log('Mic clicked, isRecording:', isRecording);
-                        if (isRecording) {
-                          stopRecording();
-                        } else {
-                          startRecording();
-                        }
-                      }}
-                      disabled={isTranscribing}
-                      className={`p-3 rounded-full transition-all z-10 ${
-                        isRecording 
-                          ? 'bg-red-500 text-white animate-pulse shadow-lg' 
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-md'
-                      } ${isTranscribing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                      title={isRecording ? 'Arrêter l\'enregistrement' : 'Enregistrer la voix'}
-                      style={{ pointerEvents: 'auto' }}
-                    >
-                      {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
-                    </button>
-                    <button 
+
+                    <button
                       onClick={handleSendMessage}
                       disabled={!inputValue.trim() || isThinking}
                       className="p-3 bg-[#bc000c] text-white rounded-xl shadow-lg shadow-[#bc000c]/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1630,7 +1535,7 @@ export default function InvestmentAgent() {
                         EFFACER
                       </button>
                     </div>
-                    <span className="text-[10px] text-gray-500">Persona: {user?.persona || 'balanced'}</span>
+                    <span className="text-[10px] text-gray-500">Persona: {user?.persona === 'balanced' ? 'équilibré' : user?.persona === 'aggressive' ? 'agressif' : 'conservateur'}</span>
                   </div>
                 </div>
               </div>
@@ -1660,7 +1565,7 @@ export default function InvestmentAgent() {
                 <div className="grid grid-cols-12 gap-6">
                   {/* LEFT COLUMN: Chart & Strategy (col-span-8) */}
                   <div className="col-span-12 lg:col-span-8 space-y-6">
-                    
+
                     {/* Chart 1: Candlestick (Institutional) */}
                     <div className={`rounded-xl p-4 border ${isDark ? 'bg-white/5 border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
                       <div className="flex justify-between items-center mb-4">
@@ -1686,16 +1591,15 @@ export default function InvestmentAgent() {
                         </h4>
                         <div className="flex gap-2">
                           {(['1d', '1w', '1m', '1y'] as const).map((period) => (
-                            <button 
+                            <button
                               key={period}
                               onClick={() => setChartPeriod(period)}
-                              className={`px-3 py-1 text-xs rounded transition-colors ${
-                                chartPeriod === period 
-                                  ? 'bg-[#bc000c] text-white' 
-                                  : isDark 
-                                    ? 'bg-white/10 text-white hover:bg-[#bc000c]' 
-                                    : 'bg-slate-200 text-slate-700 hover:bg-[#bc000c] hover:text-white'
-                              }`}
+                              className={`px-3 py-1 text-xs rounded transition-colors ${chartPeriod === period
+                                ? 'bg-[#bc000c] text-white'
+                                : isDark
+                                  ? 'bg-white/10 text-white hover:bg-[#bc000c]'
+                                  : 'bg-slate-200 text-slate-700 hover:bg-[#bc000c] hover:text-white'
+                                }`}
                             >
                               {period === '1d' ? '1J' : period === '1w' ? '1S' : period === '1m' ? '1M' : '1A'}
                             </button>
@@ -1706,9 +1610,9 @@ export default function InvestmentAgent() {
                         <canvas id="yahoo-chart" className="w-full h-full"></canvas>
                         {/* Hover Tooltip */}
                         {hoveredPoint && (
-                          <div 
+                          <div
                             className={`absolute pointer-events-none rounded-lg px-3 py-2 text-xs shadow-xl z-10 border ${isDark ? 'bg-slate-800/95 border-emerald-500/30' : 'bg-white border-emerald-500/50'}`}
-                            style={{ 
+                            style={{
                               left: Math.min(hoveredPoint.x, (document.getElementById('yahoo-chart-container')?.offsetWidth || 300) - 120),
                               top: hoveredPoint.y - 40
                             }}
@@ -1737,9 +1641,9 @@ export default function InvestmentAgent() {
                         {/* X-Axis Labels */}
                         <div className={`absolute left-12 right-0 bottom-0 h-6 flex justify-between text-[10px] pointer-events-none px-2 ${isDark ? 'text-gray-500' : 'text-gray-700'}`}>
                           {chartData.length > 0 && (() => {
-                            const points = chartPeriod === '1d' 
-                              ? [0, 6, 12, 18, 23] 
-                              : chartPeriod === '1w' 
+                            const points = chartPeriod === '1d'
+                              ? [0, 6, 12, 18, 23]
+                              : chartPeriod === '1w'
                                 ? [0, 2, 4, 6]
                                 : chartPeriod === '1m'
                                   ? [0, 10, 20, 30]
@@ -1882,7 +1786,7 @@ export default function InvestmentAgent() {
 
                   {/* RIGHT COLUMN: Sidebar Info (col-span-4) */}
                   <div className="col-span-12 lg:col-span-4 space-y-6">
-                    
+
                     {/* Informations de Base */}
                     <div className={`rounded-xl p-6 border ${isDark ? 'bg-white/5 border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
                       <h5 className={`font-bold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -1941,7 +1845,7 @@ export default function InvestmentAgent() {
                       <h5 className={`font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Entreprises Liées</h5>
                       <div className="grid grid-cols-3 gap-2">
                         {(selectedStock.related_companies || ['MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA']).map((ticker: string) => (
-                          <button 
+                          <button
                             key={ticker}
                             onClick={() => handleSelectStock(ticker)}
                             className={`px-2 py-2 text-xs font-bold rounded-lg transition-colors hover:bg-[#bc000c] hover:text-white ${isDark ? 'text-gray-400 bg-white/5' : 'text-slate-600 bg-slate-200'}`}
@@ -1961,20 +1865,19 @@ export default function InvestmentAgent() {
                         </h5>
                         <span className="px-2 py-1 bg-emerald-500/20 text-emerald-500 text-[10px] font-bold uppercase rounded">Modèle LSTM</span>
                       </div>
-                      
+
                       {/* Trend Indicator */}
                       <div className={`flex items-center justify-between mb-4 p-3 rounded-lg ${isDark ? 'bg-black/30' : 'bg-slate-100'}`}>
                         <div>
                           <p className={`text-xs ${isDark ? 'text-white' : 'text-black'}`}>Prévision à {lstmPrediction?.prediction_days || 90} Jours</p>
-                          <p className={`text-lg font-bold ${
-                            lstmPrediction?.trend?.includes('UP') ? 'text-emerald-500' : 
+                          <p className={`text-lg font-bold ${lstmPrediction?.trend?.includes('UP') ? 'text-emerald-500' :
                             lstmPrediction?.trend?.includes('DOWN') ? 'text-red-500' : 'text-yellow-500'
-                          }`}>
+                            }`}>
                             {lstmPrediction?.trend === 'STRONG_UP' ? 'TENDANCE FORTEMENT HAUSSIÈRE' :
-                             lstmPrediction?.trend === 'UP' ? 'TENDANCE HAUSSIÈRE' :
-                             lstmPrediction?.trend === 'DOWN' ? 'TENDANCE BAISSIÈRE' :
-                             lstmPrediction?.trend === 'STRONG_DOWN' ? 'TENDANCE FORTEMENT BAISSIÈRE' :
-                             'TENDANCE HAUSSIÈRE'}
+                              lstmPrediction?.trend === 'UP' ? 'TENDANCE HAUSSIÈRE' :
+                                lstmPrediction?.trend === 'DOWN' ? 'TENDANCE BAISSIÈRE' :
+                                  lstmPrediction?.trend === 'STRONG_DOWN' ? 'TENDANCE FORTEMENT BAISSIÈRE' :
+                                    'TENDANCE HAUSSIÈRE'}
                           </p>
                         </div>
                         <div className="text-right">
@@ -1982,10 +1885,10 @@ export default function InvestmentAgent() {
                           <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{Math.round((lstmPrediction?.confidence || 0.85) * 100)}%</p>
                         </div>
                       </div>
-                      
+
                       {/* LSTM Chart */}
                       <div id="lstm-prediction-chart" className="h-48 w-full mb-4"></div>
-                      
+
                       {/* Price Targets */}
                       <div className="grid grid-cols-2 gap-3">
                         <div className={`text-center p-3 rounded-lg ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
@@ -1997,11 +1900,10 @@ export default function InvestmentAgent() {
                           <p className="text-emerald-500 font-bold">{lstmPrediction?.predicted_final_price?.toFixed(2) || (selectedStock.price * 1.125).toFixed(2)} TND</p>
                         </div>
                       </div>
-                      
+
                       <div className="mt-3 text-center">
-                        <p className={`text-sm ${
-                          (lstmPrediction?.change_percent || 12.5) >= 0 ? 'text-emerald-500' : 'text-red-500'
-                        }`}>
+                        <p className={`text-sm ${(lstmPrediction?.change_percent || 12.5) >= 0 ? 'text-emerald-500' : 'text-red-500'
+                          }`}>
                           {(lstmPrediction?.change_percent || 12.5) >= 0 ? '+' : ''}{lstmPrediction?.change_percent?.toFixed(1) || '12.5'}% attendu
                         </p>
                       </div>

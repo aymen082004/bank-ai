@@ -54,17 +54,17 @@ class CarRecommender:
         'audi': 'german', 'bmw': 'german', 'mercedes': 'german', 'mercedes-benz': 'german',
         'volkswagen': 'german', 'vw': 'german', 'porsche': 'german', 'opel': 'german',
         # French
-        'peugeot': 'french', 'citroen': 'french', 'renault': 'french',
+        'peugeot': 'french', 'citroen': 'french', 'renault': 'french', 'ds': 'french', 'alpine': 'french',
         # Czech
         'skoda': 'czech',
         # Spanish
-        'seat': 'spanish',
+        'seat': 'spanish', 'cupra': 'spanish',
         # Italian
         'fiat': 'italian', 'alfa romeo': 'italian', 'lancia': 'italian',
         # Swedish
         'volvo': 'swedish',
         # British
-        'jaguar': 'british', 'land rover': 'british', 'range rover': 'british',
+        'jaguar': 'british', 'land rover': 'british', 'range rover': 'british', 'mini': 'british',
         # Japanese
         'toyota': 'japanese', 'honda': 'japanese', 'nissan': 'japanese',
         'mazda': 'japanese', 'mitsubishi': 'japanese', 'subaru': 'japanese',
@@ -82,8 +82,9 @@ class CarRecommender:
         'chery': 'chinese', 'geely': 'chinese', 'byd': 'chinese',
         'gwm': 'chinese', 'haval': 'chinese', 'jac': 'chinese',
         'mg': 'chinese', 'roewe': 'chinese', 'changan': 'chinese',
+        'dfsk': 'chinese', 'jetour': 'chinese', 'baic': 'chinese',
         # Other
-        'tata': 'indian', 'mahindra': 'indian', 'maruti': 'indian',
+        'tata': 'indian', 'mahindra': 'indian', 'maruti': 'indian', 'dacia': 'romanian'
     }
 
     # Reliability scores by brand (1-10)
@@ -105,7 +106,8 @@ class CarRecommender:
             monthly_income=profile.get('monthly_income', 0),
             monthly_expenses=profile.get('monthly_expenses', 0),
             total_liquidity=profile.get('total_liquidity', 0),
-            budget=profile.get('budget', profile.get('total_liquidity', 0) * 0.3),  # 30% of liquidity
+            # Default to a large number if no budget or liquidity is set to avoid division by zero
+            budget=profile.get('budget') or (profile.get('total_liquidity', 0) * 0.3) or 1000000,
             savings_rate=profile.get('savings_rate', 0)
         )
 
@@ -127,19 +129,19 @@ class CarRecommender:
             if brand in goal_lower:
                 preferences['brands'].append(brand)
 
-        # Extract origins (specific countries)
+        # Extract origins (specific countries) - Supporting English and French
         origin_keywords = {
-            'german': ['german', 'germany'],
-            'french': ['french', 'france'],
-            'italian': ['italian', 'italy'],
-            'british': ['british', 'uk', 'britain', 'english'],
-            'swedish': ['swedish', 'sweden'],
-            'czech': ['czech'],
-            'spanish': ['spanish', 'spain'],
-            'japanese': ['japanese', 'japan'],
-            'korean': ['korean', 'korea', 'south korean'],
-            'american': ['american', 'usa', 'us made', 'american made'],
-            'chinese': ['chinese', 'china'],
+            'german': ['german', 'germany', 'allemand', 'allemande'],
+            'french': ['french', 'france', 'français', 'française'],
+            'italian': ['italian', 'italy', 'italien', 'italienne'],
+            'british': ['british', 'uk', 'britain', 'english', 'anglais', 'anglaise', 'britannique'],
+            'swedish': ['swedish', 'sweden', 'suédois', 'suédoise'],
+            'czech': ['czech', 'tchèque'],
+            'spanish': ['spanish', 'spain', 'espagnol', 'espagnole'],
+            'japanese': ['japanese', 'japan', 'japonais', 'japonaise'],
+            'korean': ['korean', 'korea', 'south korean', 'coréen', 'coréenne'],
+            'american': ['american', 'usa', 'us made', 'américain', 'américaine'],
+            'chinese': ['chinese', 'china', 'chinois', 'chinoise'],
         }
         for origin, keywords in origin_keywords.items():
             if any(kw in goal_lower for kw in keywords):
@@ -162,17 +164,22 @@ class CarRecommender:
 
         # Extract price range indicators
         price_patterns = [
-            r'under\s+(\d+)k',
-            r'less\s+than\s+(\d+)k',
-            r'below\s+(\d+)k',
-            r'budget\s+of\s+(\d+)k',
-            r'(\d+)k?\s*-\s*(\d+)k',
+            r'under\s+(\d+)\s*(?:k|000)?',
+            r'less\s+than\s+(\d+)\s*(?:k|000)?',
+            r'below\s+(\d+)\s*(?:k|000)?',
+            r'budget\s+(?:de|of|à)\s+(\d+)\s*(?:k|000)?',
+            r'(\d+)\s*(?:k|000)?\s*(?:-|à)\s*(\d+)\s*(?:k|000)?',
+            r'\b(\d{4,6})\b', # Match 10000, 30000, etc.
         ]
         for pattern in price_patterns:
             match = re.search(pattern, goal_lower)
             if match:
-                # Simple extraction - would need more sophisticated parsing
-                preferences['price_range'] = match.group(0)
+                val = match.group(1)
+                # If it's a small number like "30", treat as "30000"
+                if len(val) <= 2:
+                    preferences['extracted_budget'] = float(val) * 1000
+                else:
+                    preferences['extracted_budget'] = float(val)
                 break
 
         # Extract year requirement
@@ -227,10 +234,15 @@ class CarRecommender:
         score = 100
 
         # Check if price exceeds budget
-        if car.price > finances.budget:
+        if finances.budget > 0 and car.price > finances.budget:
             # Penalize heavily for over-budget cars
             over_ratio = (car.price - finances.budget) / finances.budget
-            score -= min(50, over_ratio * 100)
+            # Drastic penalty: if 20% over budget, score drops significantly. 
+            # If 100% over budget (2x price), score drops to 0.
+            score -= min(100, over_ratio * 200)
+        elif finances.budget == 0 and car.price > 0:
+            # If budget is strictly 0 and price > 0, it's technically infinite over budget
+            score -= 50
 
         # Calculate recommended max car price based on income
         # Rule: car shouldn't exceed 6 months of disposable income
@@ -382,6 +394,10 @@ class CarRecommender:
         # Parse inputs
         finances = self.parse_financial_profile(profile)
         preferences = self.extract_brand_preferences(goal)
+        
+        # Use extracted budget if profile budget is empty or smaller
+        if preferences.get('extracted_budget'):
+            finances.budget = preferences['extracted_budget']
 
         # Convert raw car dicts to CarListing objects and score
         scored_cars = []
@@ -439,14 +455,14 @@ class CarRecommender:
 
                 # Determine decision
                 if affordability < 40:
-                    decision = 'HOLD'
-                    xai_insight += " (Over budget)"
+                    decision = 'ATTENDRE'
+                    xai_insight += " (Dépasse le budget)"
                 elif total_score >= 75:
-                    decision = 'BUY'
+                    decision = 'ACHETER'
                 elif total_score >= 60:
-                    decision = 'CONSIDER'
+                    decision = 'CONSIDÉRER'
                 else:
-                    decision = 'HOLD'
+                    decision = 'ATTENDRE'
 
                 # Clean title to avoid duplicate brand names
                 clean_title = car.title
@@ -633,11 +649,11 @@ def house_recommendation_agent(state: Dict) -> Dict:
         
         # Générer la décision
         if price <= budget * 1.1:
-            decision = "HOLD"
+            decision = "ACHETER"
         elif price <= budget * 1.3:
-            decision = "WATCH"
+            decision = "SURVEILLER"
         else:
-            decision = "AVOID"
+            decision = "ÉVITER"
             
         # Obtenir l'insight xAI et le rendement d'investissement pré-générés
         xai_insight = house.get('xai', f"{title} à {location}. Bon emplacement avec {surface}.")

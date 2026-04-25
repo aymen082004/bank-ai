@@ -18,12 +18,12 @@ export default function Header() {
   const navigate = useNavigate();
 
   let navLinks = [
-    { label: "BH BANK", isBrand: true, to: "/dashboard" },
+    { label: "BH BANK", isBrand: true, to: "/investment-agent" },
     { label: "Agent d'accueil", to: "/bank-agent" },
     { label: "Agent de crédit", to: "/credit-agent" },
     { label: "Agent de réclamation", to: "/complaint-agent" },
     { label: "Agent Recommandation", to: "/investment-agent" },
-    { label: "Agent commercial", to: "/dashboard" },
+    // { label: "Agent commercial", to: "/dashboard" },
   ];
 
   if (user && user.role.toLowerCase().includes("chef")) {

@@ -1,8 +1,15 @@
 import os
 from neo4j import GraphDatabase
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+dotenv_path = Path(__file__).resolve().parents[1] / ".env"
+if not dotenv_path.exists():
+    dotenv_path = Path(__file__).resolve().parents[2] / ".env"
+if dotenv_path.exists():
+    load_dotenv(dotenv_path)
+else:
+    load_dotenv()
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")

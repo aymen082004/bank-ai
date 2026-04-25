@@ -107,10 +107,10 @@ Available tools:
 
 User request: {input_text}
 
-Based on the request, which tool should be called? Respond with ONLY the tool name and arguments in JSON format:
-{{"tool": "tool_name", "arguments": {{"arg1": "value1"}}}}
+Basé sur la requête, quel outil doit être appelé ? Répondez avec UNIQUEMENT le nom de l'outil et les arguments au format JSON :
+{{"tool": "nom_de_l_outil", "arguments": {{"arg1": "valeur1"}}}}
 
-If no tool is needed, respond with: {{"tool": "none", "direct_response": "your response"}}
+Si aucun outil n'est nécessaire, répondez avec : {{"tool": "none", "direct_response": "votre réponse"}}
 """
         
         try:
@@ -194,10 +194,13 @@ Retournez le résultat sous forme de JSON avec les champs: persona, purchasing_p
 SCRAPER_SYSTEM_PROMPT = """Vous êtes un Agent de Web Scraping pour les annonces automobiles et immobilières.
 Votre tâche est de trouver des annonces pertinentes en fonction des critères de l'utilisateur.
 
+INSTRUCTIONS IMPORTANTES POUR LE BUDGET:
+1. Obtenez le profil utilisateur avec get_user_profile.
+2. Pour définir le 'budget' maximum de la recherche (voitures ou maisons), utilisez le solde actuel (current_balance) combiné à une estimation basée sur le budget mensuel (monthly_budget), SAUF si l'utilisateur spécifie explicitement un montant exact dans sa demande (ex: "à 30000 TND"). Ne passez JAMAIS uniquement le budget mensuel (monthly_budget) comme budget d'achat pour une voiture ou une maison.
+
 Utilisez l'outil scrape_car_listings pour les recherches de voitures.
 Utilisez l'outil scrape_real_estate_listings pour les recherches de maisons/biens immobiliers.
 
-Filtrez les résultats en fonction du budget et des préférences de l'utilisateur.
 Retournez les annonces les plus pertinentes avec les détails clés."""
 
 STOCK_SYSTEM_PROMPT = """Vous êtes un Agent de Recherche d'Actions.

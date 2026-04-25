@@ -29,14 +29,22 @@ def get_user_profile(user_id: str) -> Dict[str, Any]:
         Dictionary containing user profile, budget, and financial data
     """
     try:
-        user_data = mcp_handle.get_user(user_id)
-        if not user_data:
+        res = mcp_handle({
+            "action": "fetch",
+            "collection": "accounts",
+            "filter": {"user_id": user_id}
+        })
+        
+        if res.get("status") != "success" or not res.get("data"):
             return {"error": f"User {user_id} not found", "profile": {}}
         
+        user_data = res.get("data")[0]
         return {
             "user_id": user_id,
             "profile": user_data,
-            "budget": user_data.get("budget", 0),
+            "budget": user_data.get("total_liquidity", 0),  # Default large purchase budget
+            "monthly_budget": user_data.get("monthly_budget", 0),
+            "current_balance": user_data.get("total_liquidity", 0),
             "income": user_data.get("income", 0),
             "goal": user_data.get("goal", ""),
             "name": user_data.get("name", "Unknown")
@@ -59,8 +67,16 @@ def get_user_transactions(user_id: str, limit: int = 50) -> List[Dict[str, Any]]
         List of transaction records
     """
     try:
-        transactions = mcp_handle.get_transactions(user_id, limit=limit)
-        return transactions if transactions else []
+        res = mcp_handle({
+            "action": "fetch",
+            "collection": "transactions",
+            "filter": {"user_id": user_id}
+        })
+        if res.get("status") == "success":
+            transactions = res.get("data", [])
+            # Limit to 20 transactions for context optimization
+            return transactions[:20] if transactions else []
+        return []
     except Exception as e:
         return [{"error": str(e)}]
 
@@ -123,13 +139,16 @@ def scrape_car_listings(budget: float, brand: Optional[str] = None, persona: str
         
         is_origin = False
         brand_clean = brand.lower().strip() if brand else ""
+        origin_value = ""
         if brand_clean in country_names:
             is_origin = True
+            origin_value = country_names[brand_clean]
 
         # Convert persona to preferences
         preferences = {
             "risk_tolerance": "low" if persona == "keeper" else "high" if persona == "spender" else "medium",
-            "brand": brand
+            "brand": brand if not is_origin else None,
+            "brand_origin": origin_value if is_origin else ""
         }
         
         # Call the automobile.tn scraper function
@@ -249,7 +268,7 @@ def search_stock_tickers(query: str, limit: int = 5) -> Dict[str, Any]:
                 "price": price,
                 "change": snapshot.get("todaysChange", 0),
                 "change_percent": snapshot.get("todaysChangePerc", 0),
-                "description": details.get("description", ""),
+                "description": details.get("description", "")[:300] + "..." if details.get("description") and len(details.get("description", "")) > 300 else details.get("description", ""),
                 "trend": "UP" if snapshot.get("todaysChange", 0) > 0 else "DOWN"
             })
         
@@ -285,9 +304,24 @@ def get_stock_yahoo_data(ticker: str, data_type: str = "full") -> Dict[str, Any]
         elif data_type == "recommendations":
             return get_recommendations(ticker)
         else:  # full
+            info = get_stock_info(ticker)
+            chart = get_historical_data(ticker)
+            
+            # Optimization: Limit data for LLM context to prevent token overflow
+            # 1. Limit chart to last 5 days
+            if isinstance(chart, dict) and "data" in chart:
+                chart["data"] = chart["data"][-5:]
+                chart["note"] = "Data limited for context optimization"
+                
+            # 2. Truncate long descriptions
+            if info and "business_summary" in info:
+                summary = info["business_summary"]
+                if len(summary) > 500:
+                    info["business_summary"] = summary[:500] + "..."
+            
             return {
-                "info": get_stock_info(ticker),
-                "chart": get_historical_data(ticker),
+                "info": info,
+                "chart": chart,
                 "financials": get_financial_ratios(ticker),
                 "recommendations": get_recommendations(ticker)
             }
@@ -320,13 +354,13 @@ def analyze_financial_behavior(transactions: List[Dict[str, Any]], income: float
         # Classify persona
         if savings_rate > 0.3:
             persona = "keeper"
-            insight = "High savings rate, conservative spending habits"
+            insight = "Taux d'épargne élevé, habitudes de dépenses conservatrices"
         elif savings_rate < 0.1:
             persona = "spender"
-            insight = "Low savings rate, higher discretionary spending"
+            insight = "Faible taux d'épargne, dépenses discrétionnaires plus élevées"
         else:
             persona = "neutral"
-            insight = "Balanced financial behavior"
+            insight = "Comportement financier équilibré"
         
         # Determine purchasing power
         if balance > income * 3:

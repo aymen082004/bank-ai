@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     ChatAPIView, StockSearchAPIView, StockDetailAPIView,
-    VoiceAPIView, DashboardAPIView, YahooFinanceAPIView,
+    DashboardAPIView, YahooFinanceAPIView,
     StockStrategyAPIView, StockAggregatesAPIView, TrendingTickersAPIView,
     TransactionsAPIView, LSTMPredictionAPIView
 )
@@ -17,5 +17,4 @@ urlpatterns = [
     path('stocks/<str:ticker>/yahoo/', YahooFinanceAPIView.as_view(), name='stock-yahoo'),
     path('stocks/<str:ticker>/strategy/', StockStrategyAPIView.as_view(), name='stock-strategy'),
     path('stocks/<str:ticker>/predict/', LSTMPredictionAPIView.as_view(), name='stock-predict'),
-    path('voice/', VoiceAPIView.as_view(), name='voice-transcription'),
 ]

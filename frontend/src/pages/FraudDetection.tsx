@@ -52,7 +52,7 @@ const FraudDetection = () => {
     try {
       console.log('Sending fraud analysis request:', input);
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/agents/fraud/`,
+        `${import.meta.env.VITE_API_URL}/agents/fraud/`,
         { message: input },
         { headers: { Authorization: `Bearer ${token}` } }
       );

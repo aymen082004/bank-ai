@@ -269,15 +269,15 @@ class ReactAgent:
         )
 
 
-        llm = init_chat_model(model=os.getenv("OPENAI_MODEL"), api_key=os.getenv("OPENAI_API_KEY"), base_url=os.getenv("OPENAI_BASE_URL"), model_provider="openai")
+        # llm = init_chat_model(model=os.getenv("OPENAI_MODEL"), api_key=os.getenv("OPENAI_API_KEY"), base_url=os.getenv("OPENAI_BASE_URL"), model_provider="openai")
         
-        # llm = ChatOpenAI(
-        #     model=os.getenv("FASTFIN_LLM_MODEL", "qwen/qwen3-vl-4b"),
-        #     base_url=os.getenv("FASTFIN_LLM_BASE_URL", "http://localhost:1234/v1"),
-        #     api_key=os.getenv("FASTFIN_LLM_API_KEY", "lm-studio"),
-        #     temperature=0.2,
-        #     max_tokens=1024,
-        # )
+        llm = ChatOpenAI(
+            model=os.getenv("FASTFIN_LLM_MODEL", "qwen/qwen3-vl-4b"),
+            base_url=os.getenv("FASTFIN_LLM_BASE_URL", "http://localhost:1234/v1"),
+            api_key=os.getenv("FASTFIN_LLM_API_KEY", "lm-studio"),
+            temperature=0.2,
+            max_tokens=1024,
+        )
 
         checkpointer = MemorySaver()
 
