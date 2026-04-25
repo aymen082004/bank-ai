@@ -22,7 +22,7 @@ export default function Header() {
     { label: "Agent d'accueil", to: "/bank-agent" },
     { label: "Agent de crédit", to: "/credit-agent" },
     { label: "Agent de réclamation", to: "/complaint-agent" },
-    { label: "Agent commercial", to: "/dashboard" },
+    { label: "Agent Recommandation", to: "/investment-agent" },
   ];
 
   if (user && user.role.toLowerCase().includes("chef")) {

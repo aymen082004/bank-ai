@@ -7,10 +7,10 @@ import json
 import os
 import tempfile
 from pi_integration.main import create_graph
-from pi_utils.stock_api import search_tickers, get_ticker_details, get_snapshot_ticker, get_related_companies, get_stock_details
-from pi_utils.yahoo_finance import get_stock_info, get_historical_data, get_financial_ratios, get_recommendations
-from pi_utils.db_mongo import mcp_handle
-from pi_utils.voice import transcribe_tunisian, normalize_intent
+from pi_integration.pi_utils.stock_api import search_tickers, get_ticker_details, get_snapshot_ticker, get_related_companies, get_stock_details
+from pi_integration.pi_utils.yahoo_finance import get_stock_info, get_historical_data, get_financial_ratios, get_recommendations
+from pi_integration.pi_utils.db_mongo import mcp_handle
+from pi_integration.pi_utils.voice import transcribe_tunisian, normalize_intent
 
 # Initialize LangGraph app once
 app = create_graph()
@@ -36,7 +36,7 @@ class DashboardAPIView(APIView):
 
             # Sync to Neo4j for graph analysis
             try:
-                from pi_utils.db_neo4j import neo4j_handler
+                from pi_integration.pi_utils.db_neo4j import neo4j_handler
                 neo4j_handler.sync_user_from_mongodb(account_data)
                 # Also sync transactions if available
                 txn_result = mcp_handle({
@@ -140,7 +140,7 @@ class StockSearchAPIView(APIView):
         if not query:
             return Response({"error": "Query is required"}, status=status.HTTP_400_BAD_REQUEST)
         
-        from pi_utils.yahoo_finance import search_stocks
+        from pi_integration.pi_utils.yahoo_finance import search_stocks
         try:
             # 1. Get rapid autocomplete propositions from Yahoo
             search_data = search_stocks(query)
@@ -220,7 +220,7 @@ class StockAggregatesAPIView(APIView):
     Uses Yahoo Finance historical data as a reliable free source.
     """
     def get(self, request, ticker):
-        from pi_utils.yahoo_finance import get_historical_data
+        from pi_integration.pi_utils.yahoo_finance import get_historical_data
         
         period = request.query_params.get("period", "3mo")
         interval = request.query_params.get("interval", "1d")
@@ -339,7 +339,7 @@ class StockStrategyAPIView(APIView):
             }}
             """
             
-            from pi_utils.llm import call_llm
+            from pi_integration.pi_utils.llm import call_llm
             messages = [{"role": "user", "content": prompt}]
             llm_response = call_llm(messages)
             
@@ -381,7 +381,7 @@ class TrendingTickersAPIView(APIView):
     Endpoint for fetching trending tickers (stocks/crypto) for the dashboard.
     """
     def get(self, request):
-        from pi_utils.yahoo_finance import get_trending_tickers
+        from pi_integration.pi_utils.yahoo_finance import get_trending_tickers
         try:
             trending_data = get_trending_tickers()
             return Response(trending_data)
@@ -467,8 +467,8 @@ class LSTMPredictionAPIView(APIView):
     Uses Hugging Face model: jengyang/lstm-stock-prediction-model
     """
     def get(self, request, ticker):
-        from pi_utils.lstm_predictor import predict_stock_prices
-        from pi_utils.yahoo_finance import get_historical_data
+        from pi_integration.pi_utils.lstm_predictor import predict_stock_prices
+        from pi_integration.pi_utils.yahoo_finance import get_historical_data
         
         days = int(request.query_params.get("days", 90))
         
