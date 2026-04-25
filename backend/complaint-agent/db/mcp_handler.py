@@ -525,7 +525,12 @@ def _init_google_calendar_service(
 
     client_id = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
     client_secret = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
-
+    
+    is_refresh = google_access_token and google_access_token.startswith("ya29.")
+    if is_refresh:
+        google_refresh_token = google_access_token
+        google_access_token = None
+    
     if google_refresh_token and client_id and client_secret:
         try:
             creds = oauth2_credentials.Credentials(
@@ -755,11 +760,10 @@ def _init_google_calendar_service(
 def _create_google_calendar_event(
     event_data: dict, google_access_token: str | None = None, google_refresh_token: str | None = None
 ) -> dict | None:
-    is_refresh = google_access_token and google_access_token.startswith("ya29.")
     
     service = _init_google_calendar_service(
-        google_access_token=None if is_refresh else google_access_token,
-        google_refresh_token=google_access_token if is_refresh else google_refresh_token,
+        google_access_token=google_access_token,
+        google_refresh_token=google_refresh_token,
     )
     if service is None:
         return None
@@ -860,17 +864,6 @@ def mcp_handle(message: dict) -> dict:
             data.setdefault("_id", str(ObjectId()))
             data.setdefault("created_at", now)
             data.setdefault("updated_at", now)
-
-            if collection_name == "google_calendar" or collection_name == "bookings":
-                google_event = _create_google_calendar_event(
-                    data, google_access_token=google_access_token
-                )
-                if google_event is not None:
-                    data["calendar_sync"] = True
-                    data["calendar_event_id"] = google_event.get("id")
-                    data["calendar_html_link"] = google_event.get("htmlLink")
-                else:
-                    data["calendar_sync"] = False
 
             collection.insert_one(data)
             response = {"status": "success", "data": {"_id": data["_id"]}}

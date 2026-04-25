@@ -610,6 +610,22 @@ Agent behavior:
 - NEVER call without confirmation
 """
     from datetime import datetime, timedelta
+    from db.mcp_handler import mcp_handle
+
+    if customer_id:
+        try:
+            result = mcp_handle({
+                "action": "fetch",
+                "collection": "users",
+                "filter": {"customer_id": customer_id},
+            })
+            if result.get("status") == "success" and result.get("data"):
+                user = result["data"][0]
+                google_access_token = user.get("google_access_token") or user.get("google_refresh_token")
+                print(f"[DEBUG] book_appointment: loaded token from DB: {google_access_token[:30] if google_access_token else 'None'}")
+
+        except Exception as e:
+            print(f"[DEBUG] error fetching token: {e}")
 
     booking_data = {
         "customer_id": customer_id,
@@ -645,6 +661,10 @@ Agent behavior:
 
             start_dt = datetime.fromisoformat(f"{date}T{time}:00")
             end_dt = start_dt + timedelta(hours=1)
+            
+            print(f"[DEBUG] book_appointment: google_access_token starts with ya29: {google_access_token.startswith('ya29.') if google_access_token else 'N/A'}")
+            print(f"[DEBUG] book_appointment: google_access_token first 20 chars: {google_access_token[:20] if google_access_token else 'N/A'}")
+            print(f"[DEBUG] book_appointment: google_access_token length: {len(google_access_token) if google_access_token else 0}")
 
             calendar_event = _create_google_calendar_event(
                 event_data={
@@ -658,6 +678,21 @@ Agent behavior:
 
             if calendar_event:
                 calendar_event_id = calendar_event.get("id")
+                calendar_html_link = calendar_event.get("htmlLink")
+                if booking_id:
+                    try:
+                        mcp_handle({
+                            "action": "update",
+                            "collection": "bookings",
+                            "filter": {"_id": booking_id},
+                            "data": {
+                                "calendar_sync": True,
+                                "calendar_event_id": calendar_event_id,
+                                "calendar_html_link": calendar_html_link,
+                            },
+                        })
+                    except Exception:
+                        pass
         except Exception as e:
             print(f"Warning: Failed to create calendar event: {e}")
 
@@ -700,6 +735,20 @@ def book_followup(
         Dict with booking status, booking_id, and calendar_event_id.
     """
     from datetime import datetime, timedelta
+    from db.mcp_handler import mcp_handle
+
+    if not google_access_token and customer_id:
+        try:
+            result = mcp_handle({
+                "action": "fetch",
+                "collection": "users",
+                "filter": {"customer_id": customer_id},
+            })
+            if result.get("status") == "success" and result.get("data"):
+                user = result["data"][0]
+                google_access_token = user.get("google_access_token") or user.get("google_refresh_token")
+        except Exception:
+            pass
 
     if not customer_id or not slot_date or not slot_time:
         return {
@@ -754,6 +803,21 @@ def book_followup(
 
             if calendar_event:
                 calendar_event_id = calendar_event.get("id")
+                calendar_html_link = calendar_event.get("htmlLink")
+                if booking_id:
+                    try:
+                        mcp_handle({
+                            "action": "update",
+                            "collection": "bookings",
+                            "filter": {"_id": booking_id},
+                            "data": {
+                                "calendar_sync": True,
+                                "calendar_event_id": calendar_event_id,
+                                "calendar_html_link": calendar_html_link,
+                            },
+                        })
+                    except Exception:
+                        pass
         except Exception as e:
             print(f"Warning: Failed to create calendar event: {e}")
 

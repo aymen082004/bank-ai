@@ -97,6 +97,8 @@ def complaint_agent_chat(request):
     if not customer_id:
         customer_id = user_doc.get("customer_id")
     google_access_token = user_doc.get("google_access_token")
+    print(f"[DEBUG] agent_views: google_access_token first 20: {google_access_token[:20] if google_access_token else 'N/A'}")
+    print(f"[DEBUG] agent_views: user_id={user_id}, customer_id={customer_id}")
 
     try:
         result_holder = [None]
