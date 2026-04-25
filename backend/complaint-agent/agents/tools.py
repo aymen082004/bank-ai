@@ -154,7 +154,7 @@ def _query_rag_store(query: str, top_k: int = 1) -> list[dict[str, Any]]:
     os.environ["CHROMA_TELEMETRY_DISABLED"] = "true"
     
     import chromadb
-    from langchain_openai import OpenAIEmbeddings
+    from langchain_ollama import OllamaEmbeddings
 
 
     try:
@@ -173,11 +173,16 @@ def _query_rag_store(query: str, top_k: int = 1) -> list[dict[str, Any]]:
         if count == 0:
             return [{"error": "RAG collection is empty"}]
 
-        embeddings = OpenAIEmbeddings(
-            model=os.getenv("FASTFIN_EMBED_MODEL", "text-embedding-mxbai-embed-large-v1"),
-            base_url=os.getenv("FASTFIN_LLM_BASE_URL", "http://localhost:1234/v1"),
-            api_key=os.getenv("FASTFIN_LLM_API_KEY", "lm-studio"),
-            check_embedding_ctx_length=False,
+        # embeddings = OpenAIEmbeddings(
+        #     model=os.getenv("FASTFIN_EMBED_MODEL", "text-embedding-mxbai-embed-large-v1"),
+        #     base_url=os.getenv("FASTFIN_LLM_BASE_URL", "http://localhost:1234/v1"),
+        #     api_key=os.getenv("FASTFIN_LLM_API_KEY", "lm-studio"),
+        #     check_embedding_ctx_length=False,
+        # )
+
+        embeddings = OllamaEmbeddings(
+            model=os.getenv("OLLAMA_EMBED_MODEL", "mxbai-embed-large"),
+            base_url=os.getenv("OLLAMA_API_BASE", "http://localhost:11434"),
         )
 
         query_embedding = embeddings.embed_query(query)
