@@ -239,7 +239,10 @@ Informations de l'utilisateur actuel:
 
 class ReactAgent:
     """ReAct agent using langgraph.prebuilt.create_react_agent."""
-
+    
+    # Class-level storage for current token
+    _current_token: str | None = None
+    
     def __init__(
         self,
         max_iterations: int = 10,
@@ -248,6 +251,8 @@ class ReactAgent:
         customer_id: str | None = None,
         google_access_token: str | None = None,
     ):
+        # Store token for tools to access
+        ReactAgent._current_token = google_access_token
         from langgraph.prebuilt import create_react_agent
         from langgraph.checkpoint.memory import MemorySaver
         from langchain.chat_models import init_chat_model

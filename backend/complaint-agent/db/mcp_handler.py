@@ -526,12 +526,27 @@ def _init_google_calendar_service(
     client_id = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
     client_secret = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
     
-    is_refresh = google_access_token and google_access_token.startswith("ya29.")
-    if is_refresh:
-        google_refresh_token = google_access_token
-        google_access_token = None
+    print(f"[DEBUG] _init_google_calendar_service: client_id={bool(client_id)}, client_secret={bool(client_secret)}, token_uri={GOOGLE_OAUTH_TOKEN_URI}")
     
-    if google_refresh_token and client_id and client_secret:
+    # ya29. tokens are access tokens, not refresh tokens
+    is_ya29_access = google_access_token and google_access_token.startswith("ya29.")
+    
+    # Use access token directly if it's a ya29. token, otherwise try refresh token
+    if is_ya29_access and client_id and client_secret:
+        try:
+            creds = oauth2_credentials.Credentials(
+                token=google_access_token,
+                client_id=client_id,
+                client_secret=client_secret,
+                token_uri=GOOGLE_OAUTH_TOKEN_URI,
+                scopes=scopes,
+            )
+            # Prevent auto-refresh which would fail without refresh_token
+            creds.expiry = None
+        except Exception as exc:
+            print(f"[{datetime.now().isoformat()}] Failed to init creds from access_token: {exc}")
+            creds = None
+    elif google_refresh_token and client_id and client_secret:
         try:
             creds = oauth2_credentials.Credentials(
                 token=None,
@@ -761,12 +776,7 @@ def _create_google_calendar_event(
     event_data: dict, google_access_token: str | None = None, google_refresh_token: str | None = None
 ) -> dict | None:
     
-    service = _init_google_calendar_service(
-        google_access_token=google_access_token,
-        google_refresh_token=google_refresh_token,
-    )
-    if service is None:
-        return None
+    print(f"[DEBUG] _create_google_calendar_event CALLED with token: {google_access_token[:30] if google_access_token else 'None'}")
     
     start_time = event_data.get("start")
     end_time = event_data.get("end")
@@ -774,21 +784,53 @@ def _create_google_calendar_event(
     if not start_time or not end_time:
         print(f"[{datetime.now().isoformat()}] Google Calendar event skipped: missing start/end time")
         return None
-
+    
     body = {
         "summary": event_data.get("summary", "Bank visit appointment"),
         "description": event_data.get("description", ""),
         "location": event_data.get("location", ""),
         "start": {
             "dateTime": start_time,
-            "timeZone": GOOGLE_CALENDAR_TIMEZONE,
+            "timeZone": "UTC",
         },
         "end": {
             "dateTime": end_time,
-            "timeZone": GOOGLE_CALENDAR_TIMEZONE,
+            "timeZone": "UTC",
         },
     }
-
+    
+    # Use direct HTTP request to avoid auto-refresh issues
+    if google_access_token:
+        import requests
+        
+        print(f"[DEBUG] _create_google_calendar_event: token starts with ya29: {google_access_token[:20] if google_access_token else 'N/A'}")
+        
+        url = f"https://www.googleapis.com/calendar/v3/calendars/{GOOGLE_CALENDAR_ID}/events"
+        headers = {
+            "Authorization": f"Bearer {google_access_token}",
+            "Content-Type": "application/json",
+        }
+        
+        try:
+            response = requests.post(url, headers=headers, json=body, timeout=30)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"[{datetime.now().isoformat()}] Google Calendar event creation failed: {response.status_code} {response.text}")
+                return None
+        except Exception as exc:
+            print(f"[{datetime.now().isoformat()}] Google Calendar event creation failed: {exc}")
+            print(f"[{datetime.now().isoformat()}] Event body: {json.dumps(body, ensure_ascii=False)}")
+            return None
+    
+    # Fallback to service-based approach
+    service = _init_google_calendar_service(
+        google_access_token=google_access_token,
+        google_refresh_token=google_refresh_token,
+    )
+    if service is None:
+        return None
+    
     try:
         created = (
             service.events()
@@ -801,12 +843,8 @@ def _create_google_calendar_event(
         )
         return created
     except Exception as exc:
-        print(
-            f"[{datetime.now().isoformat()}] Google Calendar event creation failed: {exc}"
-        )
-        print(
-            f"[{datetime.now().isoformat()}] Event body: {json.dumps(body, ensure_ascii=False)}"
-        )
+        print(f"[{datetime.now().isoformat()}] Google Calendar event creation failed: {exc}")
+        print(f"[{datetime.now().isoformat()}] Event body: {json.dumps(body, ensure_ascii=False)}")
         return None
 
 

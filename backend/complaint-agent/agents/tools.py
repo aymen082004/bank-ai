@@ -732,7 +732,7 @@ def book_followup(
         customer_id: Customer ID (24 hex chars) - REQUIRED
         slot_date: Date from suggested slots (YYYY-MM-DD) - REQUIRED
         slot_time: Time from suggested slots (HH:MM) - REQUIRED
-        google_access_token: Google OAuth token (optional)
+        google_access_token: Google OAuth token (auto-provided by agent, don't ask user)
         appointment_type: Type of appointment (default: "Rendez-vous bancaire")
         description: Additional notes (optional)
 
@@ -742,18 +742,27 @@ def book_followup(
     from datetime import datetime, timedelta
     from db.mcp_handler import mcp_handle
 
-    if not google_access_token and customer_id:
+    # Use passed token or try to get from ReactAgent class storage, or fetch from DB
+    if not google_access_token:
+        try:
+            from agents.react_agent import ReactAgent
+            google_access_token = ReactAgent._current_token
+        except Exception:
+            pass
+    
+    if not google_access_token:
         try:
             result = mcp_handle({
                 "action": "fetch",
                 "collection": "users",
-                "filter": {"customer_id": customer_id},
+                "filter": {"google_access_token": {"$exists": True, "$ne": ""}},
             })
             if result.get("status") == "success" and result.get("data"):
                 user = result["data"][0]
                 google_access_token = user.get("google_access_token") or user.get("google_refresh_token")
-        except Exception:
-            pass
+                print(f"[DEBUG] book_followup: Using token from user: {user.get('email', 'unknown')}")
+        except Exception as e:
+            print(f"[DEBUG] book_followup: Failed to fetch user with token: {e}")
 
     if not customer_id or not slot_date or not slot_time:
         return {

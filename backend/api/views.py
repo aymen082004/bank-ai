@@ -472,6 +472,8 @@ def create_calendar_event(request):
     
     google_access_token = user.get("google_access_token") or user.get("google_refresh_token")
     
+    print(f"[DEBUG] create_calendar_event: token starts with ya29: {google_access_token[:20] if google_access_token else 'None'}")
+    
     if not google_access_token:
         return Response({"error": "No Google token. Please authenticate with Google first."}, status=401)
     
