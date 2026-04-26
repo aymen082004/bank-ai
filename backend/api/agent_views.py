@@ -15,6 +15,7 @@ from django.http import JsonResponse
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 sys.path.insert(0, os.path.join(project_root, "fraud_agent"))
+sys.path.insert(0, project_root)
 
 load_dotenv()
 JWT_SECRET = os.getenv("JWT_SECRET")

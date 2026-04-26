@@ -419,3 +419,80 @@ def mongo_logout(request):
     for key in keys:
         request.session.pop(key, None)
     return redirect("/accounts/login/")
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def create_calendar_event(request):
+    from rest_framework.response import Response
+    from bson import ObjectId
+    from datetime import datetime, timedelta
+    from api.mongodb import get_users_collection
+    
+    import sys
+    import os
+    import importlib.util
+    
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(current_dir)
+    
+    mcp_handler_path = os.path.join(project_root, "complaint-agent", "db", "mcp_handler.py")
+    if os.path.exists(mcp_handler_path):
+        spec = importlib.util.spec_from_file_location("mcp_handler_module", mcp_handler_path)
+        mcp_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mcp_module)
+        _create_google_calendar_event = mcp_module._create_google_calendar_event
+    else:
+        return Response({"error": "Calendar module not found"}, status=500)
+    
+    if request.method != "POST":
+        return Response({"error": "POST required"}, status=405)
+    
+    data = request.data
+    user_id = data.get("user_id")
+    title = data.get("title", "Rendez-vous BH Bank")
+    description = data.get("description", "")
+    date = data.get("date")
+    time = data.get("time", "09:00")
+    
+    if not user_id or not date:
+        return Response({"error": "user_id and date required"}, status=400)
+    
+    try:
+        users = get_users_collection()
+        user = users.find_one({"_id": user_id})
+        if not user:
+            user = users.find_one({"_id": ObjectId(user_id)})
+    except:
+        user = None
+    
+    if not user:
+        return Response({"error": "User not found"}, status=404)
+    
+    google_access_token = user.get("google_access_token") or user.get("google_refresh_token")
+    
+    if not google_access_token:
+        return Response({"error": "No Google token. Please authenticate with Google first."}, status=401)
+    
+    start_dt = datetime.fromisoformat(f"{date}T{time}:00")
+    end_dt = start_dt + timedelta(hours=1)
+    
+    event = _create_google_calendar_event(
+        {
+            "summary": title,
+            "description": description,
+            "start": start_dt.isoformat(),
+            "end": end_dt.isoformat(),
+        },
+        google_access_token=google_access_token,
+    )
+    
+    if event:
+        return Response({
+            "status": "success",
+            "event_id": event.get("id"),
+            "html_link": event.get("htmlLink"),
+        })
+    else:
+        return Response({"error": "Failed to create calendar event"}, status=500)

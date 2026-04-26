@@ -57,7 +57,6 @@ project/
 - Processes customer complaints using ReAct pattern
 - RAG-based policy lookup (Law 2016-48)
 - Google Calendar integration for appointments
-- Multiple sub-agents for specialized tasks
 
 #### Reception Agent (`/bank-agent`)
 - General banking inquiries

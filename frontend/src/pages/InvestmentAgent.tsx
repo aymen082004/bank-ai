@@ -16,7 +16,9 @@ import {
   Moon,
   Sun,
   TrendingDown,
-  Activity
+  Activity,
+  X,
+  Calendar
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -43,8 +45,52 @@ export default function InvestmentAgent() {
   const [chartPeriod, setChartPeriod] = useState<'1d' | '1w' | '1m' | '1y'>('1y');
   const [chartData, setChartData] = useState<any[]>([]);
   const [hoveredPoint, setHoveredPoint] = useState<{ x: number, y: number, price: number, date: string } | null>(null);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [eventDate, setEventDate] = useState('');
+  const [eventTime, setEventTime] = useState('09:00');
+  const [eventTitle, setEventTitle] = useState('');
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const handleAddToCalendar = () => {
+    if (selectedStock) {
+      setEventTitle(`Suivi action ${selectedStock.symbol || selectedStock.name}`);
+      setShowCalendarModal(true);
+    }
+  };
+
+  const handleSaveCalendarEvent = async () => {
+    if (!eventDate || !eventTime || !eventTitle) return;
+    try {
+      const userId = user?.id || localStorage.getItem('user_id');
+      if (!userId) {
+        alert('Please log in first');
+        return;
+      }
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+      const response = await fetch(`${apiUrl}/calendar/event/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          title: eventTitle,
+          description: `Suivi de l'action ${selectedStock?.symbol || selectedStock?.name}`,
+          date: eventDate,
+          time: eventTime,
+        }),
+      });
+      const data = await response.json();
+      if (data.status === 'success') {
+        console.log(`Événement créé! ${data.html_link}`);
+      } else {
+        alert(data.error || 'Failed to create event');
+      }
+      setShowCalendarModal(false);
+    } catch (err) {
+      console.error('Failed to save event:', err);
+      alert('Failed to create calendar event');
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -1716,7 +1762,7 @@ export default function InvestmentAgent() {
                           <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                         </button>
 
-                        <button className="group p-4 bg-blue-500/20 border border-blue-500/50 rounded-xl hover:bg-blue-500/30 transition-all text-left">
+                        <button onClick={handleAddToCalendar} className="group p-4 bg-blue-500/20 border border-blue-500/50 rounded-xl hover:bg-blue-500/30 transition-all text-left">
                           <div className="flex items-center gap-2 mb-2">
                             <Search size={18} className="text-blue-400" />
                             <span className="font-bold text-blue-400">Ajouter à la Surveillance</span>
@@ -1916,6 +1962,69 @@ export default function InvestmentAgent() {
         </main>
 
       </div>
+
+      {/* Calendar Modal */}
+      {showCalendarModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className={`p-6 rounded-xl w-96 ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-black'}`}>
+                Ajouter au Calendrier
+              </h3>
+              <button onClick={() => setShowCalendarModal(false)}>
+                <X className={isDark ? 'text-white' : 'text-gray-600'} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm mb-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Titre</label>
+                <input
+                  type="text"
+                  value={eventTitle}
+                  onChange={(e) => setEventTitle(e.target.value)}
+                  className={`w-full p-2 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-gray-50 border-gray-300'}`}
+                />
+              </div>
+              
+              <div>
+                <label className={`block text-sm mb-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Date</label>
+                <input
+                  type="date"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  className={`w-full p-2 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-gray-50 border-gray-300'}`}
+                />
+              </div>
+              
+              <div>
+                <label className={`block text-sm mb-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Heure</label>
+                <input
+                  type="time"
+                  value={eventTime}
+                  onChange={(e) => setEventTime(e.target.value)}
+                  className={`w-full p-2 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-white' : 'bg-gray-50 border-gray-300'}`}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={() => setShowCalendarModal(false)}
+                className={`flex-1 p-2 rounded-lg ${isDark ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSaveCalendarEvent}
+                className="flex-1 p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Sauvegarder
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
