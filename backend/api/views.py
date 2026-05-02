@@ -12,7 +12,7 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 from django.shortcuts import redirect
 
-from .mongodb import get_users_collection, get_customers_collection
+from .mongodb import get_users_collection, get_customers_collection, MongoDBClient
 
 load_dotenv()
 
@@ -498,3 +498,30 @@ def create_calendar_event(request):
         })
     else:
         return Response({"error": "Failed to create calendar event"}, status=500)
+
+
+@api_view(["GET"])
+def complaint_stats(request):
+    from bson import ObjectId
+
+    try:
+        db = MongoDBClient.get_db()
+        reclamations_collection = db["reclamations"]
+        
+        total = reclamations_collection.count_documents({})
+        
+        solved = reclamations_collection.count_documents({
+            "status": {"$regex": "trait"}
+        })
+                
+        ratio = round((solved / total * 100), 1) if total > 0 else 0
+        
+        return Response({
+            "total": total,
+            "solved": solved,
+            "ratio": ratio,
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({"error": str(e)}, status=500)

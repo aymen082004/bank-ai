@@ -577,12 +577,11 @@ def book_appointment(
     customer_id: str,
     date: str,
     time: str,
-    google_access_token: str = None,
     appointment_type: str = "Rendez-vous bancaire",
     description: str = "",
 ) -> dict[str, Any]:
     """
-Create a confirmed bank appointment and optionally sync with Google Calendar.
+Create a confirmed bank appointment and sync with Google Calendar.
 
 STRICT RULE: Only call AFTER user confirmation.
 
@@ -592,7 +591,7 @@ Responsibilities:
 - Ensure consistent scheduling record
 
 Flow:
-- Input must match a previously suggested slot
+- Input must match a previously suggested slot from suggest_booking_slots()
 - Automatically sets status = "confirmed"
 
 Failure handling:
@@ -603,7 +602,6 @@ Args:
     customer_id: Required
     date: YYYY-MM-DD
     time: HH:MM
-    google_access_token: Optional
     appointment_type: Context label
     description: Optional details
 
@@ -617,20 +615,50 @@ Agent behavior:
     from datetime import datetime, timedelta
     from db.mcp_handler import mcp_handle
 
-    if customer_id:
+    print(f"[DEBUG] book_appointment: customer_id: {customer_id}")
+    
+    # Fetch google_access_token from DB using customer_id
+    google_access_token = None
+    try:
+        # First try to find user by customer_id
+        result = mcp_handle({
+            "action": "fetch",
+            "collection": "users",
+            "filter": {"customer_id": customer_id},
+        })
+        if result.get("status") == "success" and result.get("data"):
+            user = result["data"][0]
+            google_access_token = user.get("google_access_token") or user.get("google_refresh_token")
+            print(f"[DEBUG] book_appointment: found token from user with customer_id: {google_access_token[:30] if google_access_token else 'None'}")
+        
+        # If not found by customer_id, try to find any user with google_access_token
+        if not google_access_token:
+            return {
+                "status": "success",
+                "message": f"No google access token found for customer {customer_id}",
+                "booking_id": None,
+                "calendar_event_id": None,
+            }
+    except Exception as e:
+        print(f"[DEBUG] book_appointment: error fetching token: {e}")
+    
+    if not google_access_token or not google_access_token.startswith("ya29."):
+        print(f"[DEBUG] book_appointment: no valid token, skipping calendar")
+        google_access_token = None
+        # Try to get from ReactAgent class variable
+        google_access_token = None
         try:
-            result = mcp_handle({
-                "action": "fetch",
-                "collection": "users",
-                "filter": {"customer_id": customer_id},
-            })
-            if result.get("status") == "success" and result.get("data"):
-                user = result["data"][0]
-                google_access_token = user.get("google_access_token") or user.get("google_refresh_token")
-                print(f"[DEBUG] book_appointment: loaded token from DB: {google_access_token[:30] if google_access_token else 'None'}")
-
-        except Exception as e:
-            print(f"[DEBUG] error fetching token: {e}")
+            from agents.react_agent import ReactAgent
+            if hasattr(ReactAgent, '_current_token'):
+                token = ReactAgent._current_token
+                if token and token.startswith("ya29."):
+                    google_access_token = token
+                    print(f"[DEBUG] book_appointment: got token from ReactAgent: {google_access_token[:20]}...")
+        except Exception:
+            pass
+        
+        if not google_access_token:
+            print(f"[DEBUG] book_appointment: no valid token, skipping calendar")
 
     booking_data = {
         "customer_id": customer_id,
@@ -709,141 +737,6 @@ Agent behavior:
     }
 
 @tool
-def book_followup(
-    customer_id: str,
-    slot_date: str,
-    slot_time: str,
-    google_access_token: str = None,
-    appointment_type: str = "Rendez-vous bancaire",
-    description: str = "",
-) -> dict[str, Any]:
-    """
-    Book a follow-up appointment. Use ONLY with slots from suggest_booking_slots.
-
-    IMPORTANT: Only call this AFTER user confirms the slot.
-
-    Workflow:
-    1. Call suggest_booking_slots() first
-    2. Present options to user
-    3. Get user confirmation for specific slot
-    4. Call book_followup() with the confirmed slot
-
-    Args:
-        customer_id: Customer ID (24 hex chars) - REQUIRED
-        slot_date: Date from suggested slots (YYYY-MM-DD) - REQUIRED
-        slot_time: Time from suggested slots (HH:MM) - REQUIRED
-        google_access_token: Google OAuth token (auto-provided by agent, don't ask user)
-        appointment_type: Type of appointment (default: "Rendez-vous bancaire")
-        description: Additional notes (optional)
-
-    Returns:
-        Dict with booking status, booking_id, and calendar_event_id.
-    """
-    from datetime import datetime, timedelta
-    from db.mcp_handler import mcp_handle
-
-    # Use passed token or try to get from ReactAgent class storage, or fetch from DB
-    if not google_access_token:
-        try:
-            from agents.react_agent import ReactAgent
-            google_access_token = ReactAgent._current_token
-        except Exception:
-            pass
-    
-    if not google_access_token:
-        try:
-            result = mcp_handle({
-                "action": "fetch",
-                "collection": "users",
-                "filter": {"google_access_token": {"$exists": True, "$ne": ""}},
-            })
-            if result.get("status") == "success" and result.get("data"):
-                user = result["data"][0]
-                google_access_token = user.get("google_access_token") or user.get("google_refresh_token")
-                print(f"[DEBUG] book_followup: Using token from user: {user.get('email', 'unknown')}")
-        except Exception as e:
-            print(f"[DEBUG] book_followup: Failed to fetch user with token: {e}")
-
-    if not customer_id or not slot_date or not slot_time:
-        return {
-            "status": "error",
-            "message": "customer_id, slot_date, and slot_time are all required.",
-        }
-
-    booking_data = {
-        "customer_id": customer_id,
-        "date": slot_date,
-        "time": slot_time,
-        "type": appointment_type,
-        "description": description,
-        "status": "confirmed",
-    }
-
-    mongo_result = mcp_handle(
-        {
-            "action": "insert",
-            "collection": "bookings",
-            "data": booking_data,
-        }
-    )
-
-    booking_id = None
-    calendar_event_id = None
-
-    if mongo_result["status"] == "success":
-        booking_id = mongo_result["data"]["_id"]
-    else:
-        return {
-            "status": "error",
-            "message": mongo_result.get("message", "Failed to book follow-up"),
-        }
-
-    if google_access_token:
-        try:
-            from db.mcp_handler import _create_google_calendar_event
-
-            start_dt = datetime.fromisoformat(f"{slot_date}T{slot_time}:00")
-            end_dt = start_dt + timedelta(hours=1)
-
-            calendar_event = _create_google_calendar_event(
-                event_data={
-                    "summary": appointment_type,
-                    "description": description or f"Booking ID: {booking_id}",
-                    "start": start_dt.isoformat(),
-                    "end": end_dt.isoformat(),
-                },
-                google_access_token=google_access_token,
-            )
-
-            if calendar_event:
-                calendar_event_id = calendar_event.get("id")
-                calendar_html_link = calendar_event.get("htmlLink")
-                if booking_id:
-                    try:
-                        mcp_handle({
-                            "action": "update",
-                            "collection": "bookings",
-                            "filter": {"_id": booking_id},
-                            "data": {
-                                "calendar_sync": True,
-                                "calendar_event_id": calendar_event_id,
-                                "calendar_html_link": calendar_html_link,
-                            },
-                        })
-                    except Exception:
-                        pass
-        except Exception as e:
-            print(f"Warning: Failed to create calendar event: {e}")
-
-    return {
-        "status": "success",
-        "message": f"Follow-up booked for {slot_date} at {slot_time}",
-        "booking_id": booking_id,
-        "calendar_event_id": calendar_event_id,
-    }
-
-
-@tool
 def redirect_to_agent(complaint_type: str) -> str:
     """
 Initiate redirection to a specialized agent (credit or reception).
@@ -878,7 +771,6 @@ Pour confirmer, devez-vous être redirigé vers l'agent Accueil pour l'ouverture
     else:
         return """Type de redirection non reconnu. Veuillez spécifier 'credit' ou 'reception'."""
 
-
 AVAILABLE_TOOLS = [
     query_rag_policies,
     fetch_customer_context,
@@ -886,6 +778,5 @@ AVAILABLE_TOOLS = [
     update_complaint,
     suggest_booking_slots,
     book_appointment,
-    book_followup,
     redirect_to_agent,
 ]

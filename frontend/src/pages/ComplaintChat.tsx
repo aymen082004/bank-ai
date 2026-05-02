@@ -26,6 +26,23 @@ const ComplaintChat = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [stats, setStats] = useState<{total: number; solved: number; ratio: number} | null>(null);
+
+  useEffect(() => {
+    // Fetch complaint stats
+    const fetchStats = async () => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/complaints/stats/`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setStats(response.data);
+      } catch (err) {
+        console.error('Failed to fetch stats:', err);
+      }
+    };
+    fetchStats();
+  }, [token]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -79,17 +96,39 @@ const ComplaintChat = () => {
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] w-full bg-gray-50 overflow-hidden">
       {/* Header - Agent name on top left */}
-      <div className="bg-[#1c2951] px-6 py-3 flex items-center gap-3 shadow-md">
-        <div className="bg-[#c8102e] p-1.5 rounded-full">
-          <Bot className="text-white w-5 h-5" />
-        </div>
-        <div>
-          <h2 className="text-white font-semibold text-base">Agent de Réclamation</h2>
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-            <span className="text-gray-400 text-xs">En ligne</span>
+      <div className="bg-[#1c2951] px-6 py-3 flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="bg-[#c8102e] p-1.5 rounded-full">
+            <Bot className="text-white w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-white font-semibold text-base">Agent de Réclamation</h2>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+              <span className="text-gray-400 text-xs">En ligne</span>
+            </div>
           </div>
         </div>
+        
+        {/* Stats - Right side of header */}
+        {stats && (
+          <div className="hidden md:flex bg-white/10 px-3 py-1.5 rounded-lg border border-white/20 items-center gap-3">
+            <div className="text-center px-2">
+              <div className="text-lg font-bold text-white">{stats.total}</div>
+              <div className="text-[10px] text-gray-300">Total</div>
+            </div>
+            <div className="w-px h-6 bg-white/20"></div>
+            <div className="text-center px-2">
+              <div className="text-lg font-bold text-green-400">{stats.solved}</div>
+              <div className="text-[10px] text-gray-300">Résolues</div>
+            </div>
+            <div className="w-px h-6 bg-white/20"></div>
+            <div className="text-center px-2">
+              <div className="text-lg font-bold text-yellow-400">{stats.ratio}%</div>
+              <div className="text-[10px] text-gray-300">Taux</div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Messages */}

@@ -234,7 +234,11 @@ Vous êtes un **agent expert, pas un simple chatbot**.
 
 Informations de l'utilisateur actuel: 
 	- customer_id: {customer_id} 
-	- google_access_token: {google_access_token}"""
+	- google_access_token: {google_access_token_display}
+
+Today's date: {today} 
+
+"""
 
 
 class ReactAgent:
@@ -256,6 +260,7 @@ class ReactAgent:
         from langgraph.prebuilt import create_react_agent
         from langgraph.checkpoint.memory import MemorySaver
         from langchain.chat_models import init_chat_model
+        from langsmith.wrappers import wrap_openai
 
 
 
@@ -267,10 +272,21 @@ class ReactAgent:
         self.tool_results: dict[str, Any] = {}
         self.intermediate_steps: list = []
         self.config = {"configurable": {"thread_id": user_id or "default"}}
+        
+        # Store token in instance for tools to access
+        self._token = google_access_token
 
+        # Get today's date
+        from datetime import datetime
+        today = datetime.now().strftime("%d/%m/%Y")
+        
+        # Format token for display (only show first 20 chars if available)
+        google_access_token_display = google_access_token[:20] + "..." if google_access_token and google_access_token.startswith("ya29.") else "non disponible"
+        
         prompt = REACT_SYSTEM_PROMPT.format(
             customer_id=customer_id or "non fourni",
-            google_access_token="disponible" if google_access_token else "non disponible"
+            google_access_token_display=google_access_token_display,
+            today=today
         )
 
 
@@ -359,6 +375,9 @@ def run_react_agent(
 
     if user_id and user_id in run_react_agent._agent_instances:
         agent = run_react_agent._agent_instances[user_id]
+        # Update token in cached agent
+        agent.google_access_token = google_access_token
+        agent._current_token = google_access_token
     else:
         agent = ReactAgent(
             verbose=verbose,
