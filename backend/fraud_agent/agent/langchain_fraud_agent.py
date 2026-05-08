@@ -26,7 +26,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from langchain_openai import ChatOpenAI
+from langchain_ollama import ChatOllama
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langgraph.prebuilt import create_react_agent
 
@@ -49,10 +49,9 @@ if dotenv_path.exists():
 else:
     load_dotenv()
 
-llm = ChatOpenAI(
-    model=os.getenv("FASTFIN_LLM_MODEL", "fastllmm"),
-    base_url=os.getenv("FASTFIN_LLM_BASE_URL", "http://localhost:1234/v1"),
-    api_key=os.getenv("FASTFIN_LLM_API_KEY", "lm-studio"),
+llm = ChatOllama(
+    model=os.getenv("OLLAMA_MODEL", "qwen3.5:4b"),
+    base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
     temperature=0,
     max_tokens=1500,
 )

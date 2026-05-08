@@ -23,7 +23,6 @@ if str(agent_root) not in sys.path:
 if str(agent_root / "db") not in sys.path:
     sys.path.insert(0, str(agent_root / "db"))
 
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
 from bank_tools import AVAILABLE_BANK_TOOLS
 from agent_storage import save_action_event, save_chat_event, build_memory_context
@@ -42,9 +41,9 @@ else:
     load_dotenv()
 
 # Configuration
-LLM_BASE_URL = os.environ.get("FASTFIN_LLM_BASE_URL", "http://localhost:1234/v1")
-LLM_MODEL = os.environ.get("FASTFIN_LLM_MODEL", "qwen/qwen3-vl-4b")
-LLM_API_KEY = os.environ.get("FASTFIN_LLM_API_KEY", "lm-studio")
+LLM_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+LLM_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3.5:4b")
+# LLM_API_KEY = os.environ.get("FASTFIN_LLM_API_KEY", "lm-studio")
 
 SYSTEM_PROMPT = """Tu es l'assistant expert de la BH Bank Tunisie.
 TON OBJECTIF : Aider les clients pour leurs opérations bancaires ET répondre à leurs questions générales ou d'actualité sur la BH Bank (en utilisant l'outil de recherche si nécessaire).
@@ -130,10 +129,10 @@ class BankReactAgent:
             HumanMessage(content=user_question)
         ]
 
-        llm = ChatOpenAI(
+        llm = ChatOllama(
             model=LLM_MODEL,
             base_url=LLM_BASE_URL,
-            api_key=LLM_API_KEY,
+            # api_key=LLM_API_KEY,
             temperature=0,
         )
 

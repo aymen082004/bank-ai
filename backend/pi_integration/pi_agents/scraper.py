@@ -415,7 +415,7 @@ def scrape_tecnocasa_tn(budget, location=None, property_type=None):
         'el kantaoui': 'nord-est-ne/cap-bon/hammamet/el-kantaoui',
         'kantaoui': 'nord-est-ne/cap-bon/hammamet/el-kantaoui',
         'kelibia': 'nord-est-ne/cap-bon/kelibia',
-        'bizerte': 'nord-est-ne/bizerte/bizerte',
+        'bizerte': 'nord-est-ne/bizerte',
         
         # ========== CENTRE ==========
         # Sousse

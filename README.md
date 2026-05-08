@@ -1,136 +1,206 @@
 # Bank AI System - BH Bank
 
-A comprehensive banking management system with AI agents for customer service, complaint handling, credit analysis, and more.
-
 ## Overview
 
-This project is a full-stack banking application built with Django REST API and React. It features multiple AI agents powered by LangChain and LangGraph to handle various banking operations including customer complaints, account inquiries, credit analysis, and fraud detection.
+A comprehensive banking management system with AI agents for customer service, complaint handling, credit analysis, and fraud detection. Built with Django REST API and React, this platform provides a complete solution for Tunisian banking operations with intelligent automation and real-time data processing.
 
-## Project Structure
-
-```
-project/
-├── backend/                 # Django REST API
-│   ├── backend/            # Django settings & configuration
-│   ├── api/               # API endpoints & views
-│   │   ├── views.py       # Authentication & user endpoints
-│   │   ├── custom_admin.py # MongoDB admin interface
-│   │   ├── agent_views.py  # AI agent endpoints
-│   │   └── mongodb.py     # MongoDB connection
-│   ├── complaint-agent/    # Complaint handling AI agent
-│   │   ├── agents/       # ReAct agent & tools
-│   │   └── db/           # RAG & vector storage
-│   ├── reception-agent/   # Reception/chat AI agent
-│   ├── credit_agent/     # Credit analysis AI agent
-│   ├── dashboard_agent/   # Dashboard generation agent
-│   └── requirements.txt
-│
-├── frontend/               # React + TypeScript + Vite
-│   ├── src/
-│   │   ├── pages/        # React pages
-│   │   ├── components/   # Reusable components
-│   │   └── context/      # Auth context
-│   └── package.json
-│
-└── README.md
-```
+The system leverages cutting-edge AI technologies including LangChain, LangGraph, and local LLM inference via Ollama to deliver personalized customer experiences while maintaining strict security and compliance standards required for banking operations.
 
 ## Features
 
-### 1. Authentication & Authorization
-- Email + CIN based login (no password required)
-- Google OAuth integration
-- JWT token-based authentication
-- Role-based access control (Customer, Chef d'Agence)
+### Authentication & Security
+- Email + CIN based login (passwordless authentication)
+- Google OAuth integration for seamless access
+- JWT token-based authentication with refresh tokens
+- Role-based access control (Customer, Chef d'Agence, Admin)
+- Session management with automatic token refresh
 
-### 2. Custom MongoDB Admin Interface
-- Dashboard with bank statistics
-- View, search, filter, edit, delete MongoDB collections
-- Role-based access:
-  - **Customers**: See only their accounts, transactions, bookings, reclamations
-  - **Chefs/Admins**: Full access to all collections
-- Dark/Light theme support
+### Custom MongoDB Admin Interface
+- Real-time dashboard with bank statistics and KPIs
+- Full CRUD operations on MongoDB collections
+- Advanced search and filtering capabilities
+- Role-based data visibility (customers see only their data)
+- Dark/Light theme support with responsive design
+- Export functionality for reports
 
-### 3. AI Agents
+### AI Agents System
 
 #### Complaint Agent (`/complaint-agent`)
-- Processes customer complaints using ReAct pattern
-- RAG-based policy lookup (Law 2016-48)
-- Google Calendar integration for appointments
+- ReAct pattern agent with tool calling
+- RAG-based policy lookup using Law 2016-48 (Tunisian consumer protection)
+- Google Calendar integration for appointment booking
+- Automatic complaint categorization and prioritization
+- Resolution tracking with SLA monitoring
+- Email notifications via Resend
 
 #### Reception Agent (`/bank-agent`)
-- General banking inquiries
-- Account information
-- Transaction history
+- General banking inquiries handling
+- Account information queries
+- Transaction history lookup
+- Product recommendations
+- Multi-turn conversation with memory
 
 #### Credit Agent (`/credit-agent`)
 - Loan application analysis
-- Risk assessment
+- Risk assessment scoring
 - Document processing (PDF, Excel)
+- Credit limit calculations
+- Approval workflow automation
+
+#### Dashboard Agent
+- Automated report generation
+- Financial analytics
+- Custom query handling
+- Chart and visualization creation
 
 #### Fraud Detection Agent
-- Transaction monitoring
-- Anomaly detection
+- Real-time transaction monitoring
+- Anomaly detection using Autoencoder + LSTM models
+- Neo4j graph-based fraud signals
+- Alert generation and escalation
+- LLM-based explanation generation
 
-### 4. MongoDB Collections
+### Data Collections
+- `customers` - Customer profiles and personal information
+- `accounts` - Bank accounts (checking, savings, deposits)
+- `bank_transactions` - Complete transaction history
+- `cheques` - Cheque management and tracking
+- `reclamations` - Customer complaints and resolution tracking
+- `bookings` - Appointment scheduling
+- `recovery_loans` - Loan recovery management
+- `users` - System users and roles
+- `bank_params` - Bank configuration parameters
 
-| Collection | Description |
-|------------|-------------|
-| `customers` | Customer profiles with personal info |
-| `accounts` | Bank accounts (checking, savings) |
-| `bank_transactions` | All transaction records |
-| `cheques` | Cheque management |
-| `reclamations` | Customer complaints |
-| `bookings` | Appointments |
-| `recovery_loans` | Loan recovery tracking |
-| `users` | System users |
-| `bank_params` | Bank parameters |
+## Tech Stack
 
-## Prerequisites
-
-- **Python**: 3.9+ (recommended 3.11)
-- **Node.js**: 18+
-- **MongoDB**: Atlas or local instance
-- **Ollama**: For local LLM embeddings (optional)
-
-## Environment Variables
-
-Create `.env` file in `backend/`:
-
-```env
-# MongoDB Connection
-MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/
-JWT_SECRET=your_super_secret_jwt_key
-
-# AI/LLM Configuration
-OPENAI_MODEL=gpt-4o-mini
-OPENAI_API_KEY=sk-your-openai-key
-OPENAI_BASE_URL=https://api.openai.com/v1
-
-# Or use Ollama (local)
-# OPENAI_MODEL=qwen3.5:4b
-# OPENAI_BASE_URL=http://localhost:1234/v1
-# OPENAI_API_KEY=lm-studio
-
-# Ollama Embeddings
-OLLAMA_MODEL=qwen3.5:4b
-OLLAMA_EMBED_MODEL=mxbai-embed-large:latest
-
-# Google OAuth (optional)
-GOOGLE_CLIENT_ID=your-client-id
-GOOGLE_CLIENT_SECRET=your-client-secret
-
-# Google Calendar (optional - for booking sync)
-GOOGLE_OAUTH_CLIENT_ID=...
-GOOGLE_OAUTH_CLIENT_SECRET=...
-GOOGLE_OAUTH_REFRESH_TOKEN=...
-```
-
-## Installation
+### Frontend
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite for fast development and optimized builds
+- **Styling**: TailwindCSS for responsive, modern UI
+- **State Management**: React Context API
+- **Routing**: React Router v6
+- **HTTP Client**: Axios with interceptors
+- **Charts**: Recharts for data visualization
+- **Icons**: Lucide React
 
 ### Backend
+- **Framework**: Django 4.2 with Python 3.11
+- **API**: Django REST Framework
+- **Database**: MongoDB via PyMongo (primary data store)
+- **Authentication**: JWT (PyJWT) + Google OAuth
+- **AI/ML**: LangChain, LangGraph, OpenAI, Ollama
+- **Task Queue**: Celery (for async processing)
+- **Email**: Resend API
+- **Web Scraping**: Playwright + Requests
+
+### Other Tools
+- **LLM Runtime**: Ollama (local inference)
+- **Embeddings**: mxbai-embed-large
+- **Vector Store**: Chroma (for RAG)
+- **Graph Database**: Neo4j (fraud detection)
+- **Calendar**: Google Calendar API
+- **Browser Automation**: Playwright
+
+## Directory Structure
+
+```
+project/
+├── backend/
+│   ├── backend/                    # Django project settings
+│   │   ├── settings.py             # Main configuration
+│   │   ├── urls.py                 # URL routing
+│   │   └── wsgi.py                 # WSGI entry point
+│   │
+│   ├── api/                        # REST API endpoints
+│   │   ├── views.py                # API views
+│   │   ├── urls.py                 # URL patterns
+│   │   ├── agent_views.py          # AI agent endpoints
+│   │   ├── mongodb.py             # MongoDB connection
+│   │   └── custom_admin.py        # MongoDB admin interface
+│   │
+│   ├── complaint-agent/            # Complaint handling agent
+│   │   ├── agents/
+│   │   │   ├── react_agent.py     # ReAct agent implementation
+│   │   │   └── tools.py            # Tool definitions
+│   │   └── db/
+│   │       ├── rag_utils.py       # RAG utilities
+│   │       └── vector_store.py    # Chroma vector store
+│   │
+│   ├── reception-agent/            # Reception/chat agent
+│   │   ├── agents/
+│   │   │   └── react_agent.py      # Main agent
+│   │   └── bank_tools.py          # Banking tools
+│   │
+│   ├── credit_agent/               # Credit analysis agent
+│   │   ├── agents/
+│   │   └── services/
+│   │
+│   ├── dashboard_agent/            # Dashboard generation agent
+│   │   └── code/
+│   │       └── agent.py            # Agent implementation
+│   │
+│   ├── fraud_agent/                # Fraud detection agent
+│   │   ├── agent/                  # ReAct agent
+│   │   ├── model/                  # ML models
+│   │   ├── db/                     # MongoDB
+│   │   ├── graph/                  # Neo4j
+│   │   └── services/               # Decision logic
+│   │
+│   ├── pi_integration/
+│   │   └── pi_agents/
+│   │       └── scraper.py          # Car/house scraping
+│   │
+│   ├── requirements.txt            # Python dependencies
+│   └── .env                        # Environment variables
+│
+├── frontend/
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── Login.tsx           # Login page
+│   │   │   ├── Dashboard.tsx       # Main dashboard
+│   │   │   ├── Admin.tsx           # MongoDB admin
+│   │   │   ├── ComplaintChat.tsx  # Complaint agent UI
+│   │   │   ├── BankAgent.tsx      # Reception agent UI
+│   │   │   └── ...
+│   │   │
+│   │   ├── components/
+│   │   │   ├── Navbar.tsx         # Navigation
+│   │   │   ├── Sidebar.tsx        # Side menu
+│   │   │   ├── ChatBox.tsx        # Chat interface
+│   │   │   ├── DataTable.tsx      # Data display
+│   │   │   └── ...
+│   │   │
+│   │   ├── context/
+│   │   │   └── AuthContext.tsx    # Auth state
+│   │   │
+│   │   ├── services/
+│   │   │   └── api.ts             # API client
+│   │   │
+│   │   └── App.tsx                # Main app
+│   │
+│   ├── package.json
+│   ├── tailwind.config.js
+│   └── vite.config.ts
+│
+├── docs/                           # Documentation
+│   └── COMPLAINT_AGENT.md         # Agent architecture
+│
+└── README.md                       # This file
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.9+ (recommended 3.11)
+- Node.js 18+
+- MongoDB (Atlas or local)
+- Ollama (optional, for local LLM)
+
+### Backend Setup
 
 ```bash
+# Navigate to backend
 cd backend
 
 # Create virtual environment
@@ -145,16 +215,20 @@ source .venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Run migrations (for Django admin)
+# Create .env file (see configuration section)
+copy .env.example .env
+
+# Run migrations
 python manage.py migrate
 
-# Start server
+# Start development server
 python manage.py runserver
 ```
 
-### Frontend
+### Frontend Setup
 
 ```bash
+# Navigate to frontend
 cd frontend
 
 # Install dependencies
@@ -164,119 +238,63 @@ npm install
 npm run dev
 ```
 
-## Running the Application
+### Configuration (.env)
 
-### 1. Start MongoDB
-Ensure your MongoDB instance is running locally or use MongoDB Atlas.
+```env
+# MongoDB
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/
+MONGO_DB=bh_bank
 
-### 2. Start Backend
-```bash
-cd backend
-python manage.py runserver 8000
+# JWT
+JWT_SECRET=your_super_secret_jwt_key
+
+# Ollama (Local LLM)
+OLLAMA_MODEL=qwen3.5:4b
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_EMBED_MODEL=mxbai-embed-large:latest
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+
+# Google Calendar
+GOOGLE_OAUTH_CLIENT_ID=...
+GOOGLE_OAUTH_CLIENT_SECRET=...
+GOOGLE_OAUTH_REFRESH_TOKEN=...
+
+# Email (Resend)
+RESEND_API_KEY=re_xxxxx
 ```
 
-### 3. Start Frontend
-```bash
-cd frontend
-npm run dev
-```
+### Running the Application
 
-### 4. Access the Application
+1. **MongoDB**: Ensure MongoDB is running (local or Atlas)
+2. **Ollama** (optional): `ollama serve` to start local LLM
+3. **Backend**: `python manage.py runserver 8000`
+4. **Frontend**: `npm run dev` (runs on http://localhost:5173)
+
+### Access Points
+
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:8000
-- **Admin Panel**: http://localhost:8000/admin/
-
-## API Endpoints
-
-### Authentication
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/auth/register/` | POST | Register new user |
-| `/api/auth/login/` | POST | Login (email + CIN) |
-| `/api/auth/google/` | POST | Google OAuth login |
-
-### AI Agents
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/agents/complaint/` | POST | Complaint agent chat |
-| `/api/agents/bank/` | POST | Reception agent chat |
-| `/api/agents/bank/memory/` | GET | Get chat memory |
-| `/api/agents/bank/new-session/` | POST | Start new session |
-| `/api/agents/bank/clear-memory/` | POST | Clear chat memory |
-
-### Admin
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/admin/` | GET | Dashboard stats |
-| `/admin/<collection>/` | GET | List documents |
-| `/admin/<collection>/<id>/` | GET/POST | View/Edit document |
-| `/admin/<collection>/<id>/delete/` | POST | Delete document |
-
-### Account
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/accounts/login/` | POST | Browser-based login |
-| `/accounts/logout/` | GET | Logout |
-| `/accounts/dashboard/` | GET | User dashboard |
-
-## Tech Stack
-
-### Backend
-- **Framework**: Django 4.2
-- **API**: Django REST Framework
-- **Database**: MongoDB (via PyMongo)
-- **Authentication**: JWT, Google OAuth
-- **AI**: LangChain, LangGraph, OpenAI/Ollama
-
-### Frontend
-- **Framework**: React 18
-- **Language**: TypeScript
-- **Build Tool**: Vite
-- **Styling**: TailwindCSS
-- **Routing**: React Router
-- **HTTP Client**: Axios
-
-### Database
-- **Primary**: MongoDB (banking data)
-- **Secondary**: SQLite (Django sessions)
-
-## User Roles
-
-### Customer
-- View own accounts, transactions, bookings, reclamations
-- Chat with AI agents
-- Make complaints
-
-### Chef d'Agence (Branch Manager)
-- Full access to all MongoDB collections
-- View all customer data
-- Manage complaints
-- Access admin panel
-
-## Screenshots
-
-The application features:
-- Login page with email + CIN authentication
-- Dashboard with role-based navigation
-- Custom MongoDB admin interface
-- AI chat interfaces for different agents
-- Dark/Light theme toggle
+- **Django Admin**: http://localhost:8000/admin/
 
 ## Troubleshooting
 
-### MongoDB Connection Issues
-- Verify MongoDB URI in `.env`
+### MongoDB Connection
+- Verify URI in `.env`
 - Check network/firewall settings
-- For local MongoDB: ensure service is running
+- For local: ensure MongoDB service is running
 
 ### Frontend-Backend Connection
 - CORS is configured in Django settings
-- Check that frontend calls correct API URL
+- Verify VITE_API_URL in frontend
 
-### AI Agent Not Responding
-- Verify OpenAI API key or Ollama is running
+### AI Agent Issues
+- Verify Ollama is running: `ollama list`
 - Check server logs for errors
+- Ensure API keys are configured
 
-## License
+## Acknowledgments
 
-Private - BH Bank Project
+Developed for BH Bank Tunisia - Banking AI Project
