@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>BH Bank - Vérification Chèque</title>
+
+    <style>
+        :root {
+            --bh-blue: #22396f;
+            --bh-blue-dark: #15284f;
+            --bh-red: #d71920;
+            --bg: #f4f6fb;
+            --card: #ffffff;
+            --text: #111827;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --success: #16a34a;
+            --error: #dc2626;
+            --warning: #d97706;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .app {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 360px 1fr;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            background: linear-gradient(180deg, var(--bh-blue), var(--bh-blue-dark));
+            color: white;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 10px;
+        }
+
+        .brand-logo {
+            background: white;
+            border-radius: 14px;
+            padding: 12px 14px;
+            color: var(--bh-red);
+            font-weight: 900;
+            font-size: 30px;
+            letter-spacing: -1px;
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .brand-text {
+            line-height: 1.1;
+        }
+
+        .brand-text strong {
+            display: block;
+            font-size: 20px;
+        }
+
+        .brand-text span {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        .agent-card {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 22px;
+            padding: 18px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+        }
+
+        .agent-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .agent-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: white;
+            color: var(--bh-blue);
+            display: grid;
+            place-items: center;
+            font-weight: 900;
+        }
+
+        .agent-title h3 {
+            margin: 0;
+            font-size: 17px;
+        }
+
+        .agent-title p {
+            margin: 2px 0 0;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+
+        .chat-bubble {
+            background: white;
+            color: #1f2937;
+            padding: 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.55;
+            margin-bottom: 12px;
+        }
+
+        .chat-bubble.user {
+            background: rgba(255, 255, 255, 0.12);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            margin-left: 26px;
+        }
+
+        .side-form {
+            background: rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 18px;
+            padding: 16px;
+        }
+
+        .side-form h3 {
+            margin: 0 0 12px;
+            font-size: 16px;
+        }
+
+        .file-input,
+        .text-input {
+            width: 100%;
+            padding: 11px;
+            border-radius: 12px;
+            border: none;
+            background: rgba(255, 255, 255, 0.92);
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--bh-red);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #b9151b;
+        }
+
+        .btn-light {
+            background: white;
+            color: var(--bh-blue);
+        }
+
+        .btn-light:hover {
+            background: #eef2ff;
+        }
+
+        /* MAIN */
+        .main {
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        .topbar {
+            height: 74px;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .page-title h1 {
+            margin: 0;
+            font-size: 24px;
+            color: var(--bh-blue-dark);
+        }
+
+        .page-title p {
+            margin: 4px 0 0;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f8fafc;
+            padding: 9px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+        }
+
+        .role {
+            background: var(--bh-blue);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #fee2e2;
+            color: var(--bh-red);
+            display: grid;
+            place-items: center;
+            font-weight: 800;
+        }
+
+        .content {
+            padding: 30px 34px 50px;
+        }
+
+        .section-title {
+            margin: 0 0 16px;
+            color: #4b5563;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 22px;
+            margin-bottom: 28px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            padding: 22px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+        }
+
+        .span-4 {
+            grid-column: span 4;
+        }
+
+        .span-6 {
+            grid-column: span 6;
+        }
+
+        .span-8 {
+            grid-column: span 8;
+        }
+
+        .span-12 {
+            grid-column: span 12;
+        }
+
+        .metric {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .metric h3 {
+            margin: 0;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .metric strong {
+            display: block;
+            margin-top: 8px;
+            font-size: 30px;
+            color: var(--bh-blue-dark);
+        }
+
+        .metric-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            font-size: 24px;
+            background: #eff6ff;
+            color: var(--bh-blue);
+        }
+
+        .metric-icon.red {
+            background: #fee2e2;
+            color: var(--bh-red);
+        }
+
+        .metric-icon.green {
+            background: #dcfce7;
+            color: var(--success);
+        }
+
+        .status-line {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .success {
+            color: var(--success);
+            font-weight: 800;
+        }
+
+        .error {
+            color: var(--error);
+            font-weight: 800;
+        }
+
+        .warning {
+            color: var(--warning);
+            font-weight: 800;
+        }
+
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+        }
+
+        .image-box h3 {
+            margin: 0 0 12px;
+            font-size: 16px;
+            color: var(--bh-blue-dark);
+        }
+
+        .image-box img {
+            width: 100%;
+            max-height: 360px;
+            object-fit: contain;
+            background: #f9fafb;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 10px;
+        }
+
+        .crop-img {
+            max-height: 170px !important;
+        }
+
+        .result-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 14px;
+            margin-top: 10px;
+        }
+
+        .result-item {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 14px;
+        }
+
+        .result-item span {
+            display: block;
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .result-item strong {
+            font-size: 16px;
+            color: var(--text);
+        }
+
+        .score-bar {
+            height: 10px;
+            border-radius: 999px;
+            background: #e5e7eb;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .score-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--bh-red), var(--success));
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 14px;
+            overflow: hidden;
+            border-radius: 14px;
+        }
+
+        th {
+            background: var(--bh-blue);
+            color: white;
+            text-align: left;
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+
+        pre {
+            background: #111827;
+            color: #e5e7eb;
+            padding: 14px;
+            border-radius: 14px;
+            overflow-x: auto;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+
+        .empty-state .icon {
+            font-size: 52px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 1000px) {
+            .app {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: relative;
+                height: auto;
+            }
+
+            .topbar {
+                position: relative;
+                height: auto;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 20px;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .span-4,
+            .span-6,
+            .span-8,
+            .span-12 {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="app">
+
+    <!-- SIDEBAR AGENT -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-logo">BH</div>
+            <div class="brand-text">
+                <strong>BH Bank</strong>
+                <span>AI Cheque Verification</span>
+            </div>
+        </div>
+
+        <div class="agent-card">
+            <div class="agent-title">
+                <div class="agent-avatar">IA</div>
+                <div>
+                    <h3>Agent IA de vérification</h3>
+                    <p>Client · Montant · Signature</p>
+                </div>
+            </div>
+
+            <div class="chat-bubble">
+                Bonjour. Je suis l’agent IA de la BH Bank. Importez un chèque pour lancer l’analyse automatique.
+            </div>
+
+            {% if verification %}
+                <div class="chat-bubble user">
+                    Analyse terminée.
+                </div>
+
+                <div class="chat-bubble">
+                    Client : {{ verification.client_text_detected }}<br>
+                    Montant : {{ verification.amount_text_detected }}<br>
+                    Signature : {{ verification.signature_status }}
+                </div>
+            {% else %}
+                <div class="chat-bubble user">
+                    Je veux vérifier un chèque.
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="side-form">
+            <h3>Vérifier un chèque</h3>
+
+            <form method="POST" action="/predict" enctype="multipart/form-data">
+                <input class="file-input" type="file" name="image" required>
+                <button class="btn btn-primary" type="submit">Lancer la vérification</button>
+            </form>
+        </div>
+<div class="side-form">
+    <h3>Navigation</h3>
+
+    <a href="/rag" style="text-decoration: none;">
+        <button class="btn btn-light" type="button">
+            📚 Ouvrir Assistant RAG
+        </button>
+    </a>
+</div>
+
+    </aside>
+
+    <!-- MAIN DASHBOARD -->
+    <main class="main">
+
+        <header class="topbar">
+            <div class="page-title">
+                <h1>Vérification intelligente des chèques</h1>
+                <p>Analyse multimodale avec Ollama Vision, SQLite et comparaison de signature</p>
+            </div>
+
+            <div class="user-pill">
+                <span class="role">CHEF AGENCY</span>
+                <div class="avatar">BH</div>
+                <strong>Dashboard</strong>
+            </div>
+        </header>
+
+        <section class="content">
+
+            {% if verification %}
+                <h2 class="section-title">Résultat global</h2>
+
+                <div class="dashboard-grid">
+                    <div class="card span-4">
+                        <div class="metric">
+                            <div>
+                                <h3>Client</h3>
+                                {% if verification.client_exists %}
+                                    <strong class="success">Validé</strong>
+                                {% else %}
+                                    <strong class="error">Inconnu</strong>
+                                {% endif %}
+                            </div>
+                            <div class="metric-icon green">👤</div>
+                        </div>
+
+                        <div class="status-line">
+                            {{ verification.client_text_detected }}
+                        </div>
+                    </div>
+
+                    <div class="card span-4">
+                        <div class="metric">
+                            <div>
+                                <h3>Montant</h3>
+                                {% if verification.amount_exists %}
+                                    <strong class="success">Correct</strong>
+                                {% else %}
+                                    <strong class="error">Incorrect</strong>
+                                {% endif %}
+                            </div>
+                            <div class="metric-icon">💰</div>
+                        </div>
+
+                        <div class="status-line">
+                            Détecté : {{ verification.amount_text_detected }}
+                            {% if verification.client %}
+                                <br>Attendu : {{ verification.client.amount }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="card span-4">
+                        <div class="metric">
+                            <div>
+                                <h3>Signature</h3>
+                                {% if verification.signature_correct %}
+                                    <strong class="success">Acceptée</strong>
+                                {% elif verification.signature_status == "a_verifier" %}
+                                    <strong class="warning">À vérifier</strong>
+                                {% else %}
+                                    <strong class="error">Refusée</strong>
+                                {% endif %}
+                            </div>
+                            <div class="metric-icon red">✍️</div>
+                        </div>
+
+                        <div class="status-line">
+                            Score : {{ verification.signature_score }}
+                            <div class="score-bar">
+                                <div class="score-bar-fill" style="width: {{ (verification.signature_score * 100) | round(0) }}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 class="section-title">Détails de vérification</h2>
+
+                <div class="dashboard-grid">
+                    <div class="card span-8">
+                        <h3>Analyse du chèque</h3>
+
+                        <div class="result-list">
+                            <div class="result-item">
+                                <span>Client détecté par Ollama</span>
+                                <strong>{{ verification.client_text_detected }}</strong>
+                            </div>
+
+                            <div class="result-item">
+                                <span>Client dans SQLite</span>
+                                {% if verification.client_exists %}
+                                    <strong class="success">Oui</strong>
+                                {% else %}
+                                    <strong class="error">Non</strong>
+                                {% endif %}
+                            </div>
+
+                            {% if verification.client %}
+                                <div class="result-item">
+                                    <span>Client trouvé</span>
+                                    <strong>{{ verification.client.name }}</strong>
+                                </div>
+
+                                <div class="result-item">
+                                    <span>Signature référence</span>
+                                    <strong>{{ verification.client.signature_path }}</strong>
+                                </div>
+                            {% endif %}
+
+                            <div class="result-item">
+                                <span>Montant détecté</span>
+                                <strong>{{ verification.amount_text_detected }}</strong>
+                            </div>
+
+                            <div class="result-item">
+                                <span>Montant correspond</span>
+                                {% if verification.amount_exists %}
+                                    <strong class="success">Oui</strong>
+                                {% else %}
+                                    <strong class="error">Non</strong>
+                                {% endif %}
+                            </div>
+
+                            <div class="result-item">
+                                <span>Status signature</span>
+                                {% if verification.signature_status == "correcte" %}
+                                    <strong class="success">{{ verification.signature_status }}</strong>
+                                {% elif verification.signature_status == "a_verifier" %}
+                                    <strong class="warning">{{ verification.signature_status }}</strong>
+                                {% else %}
+                                    <strong class="error">{{ verification.signature_status }}</strong>
+                                {% endif %}
+                            </div>
+
+                            <div class="result-item">
+                                <span>Message signature</span>
+                                <strong>{{ verification.signature_message }}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card span-4">
+                        <h3>Scores signature</h3>
+
+                        <div class="result-item">
+                            <span>Score final</span>
+                            <strong>{{ verification.signature_score }}</strong>
+                        </div>
+
+                        <div class="result-item">
+                            <span>Score template</span>
+                            <strong>{{ verification.signature_template_score }}</strong>
+                        </div>
+
+                        <div class="result-item">
+                            <span>Score ORB</span>
+                            <strong>{{ verification.signature_orb_score }}</strong>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card empty-state">
+                    <div class="icon">🏦</div>
+                    <h2>Bienvenue dans l’espace BH Bank</h2>
+                    <p>Importez un chèque depuis le panneau gauche pour démarrer l’analyse.</p>
+                </div>
+            {% endif %}
+
+            {% if uploaded_image %}
+                <h2 class="section-title">Images du document</h2>
+
+                <div class="card">
+                    <div class="images-grid">
+                        <div class="image-box">
+                            <h3>Image originale</h3>
+                            <img src="{{ uploaded_image }}">
+                        </div>
+
+                        {% if result_image %}
+                            <div class="image-box">
+                                <h3>Résultat détection</h3>
+                                <img src="{{ result_image }}">
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if client_crop or amount_crop or signature_crop %}
+                <h2 class="section-title">Zones extraites</h2>
+
+                <div class="card">
+                    <div class="images-grid">
+                        {% if client_crop %}
+                            <div class="image-box">
+                                <h3>Client détecté</h3>
+                                <img class="crop-img" src="{{ client_crop }}">
+                            </div>
+                        {% endif %}
+
+                        {% if amount_crop %}
+                            <div class="image-box">
+                                <h3>Montant détecté</h3>
+                                <img class="crop-img" src="{{ amount_crop }}">
+                            </div>
+                        {% endif %}
+
+                        {% if signature_crop %}
+                            <div class="image-box">
+                                <h3>Signature détectée</h3>
+                                <img class="crop-img" src="{{ signature_crop }}">
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if verification %}
+                <h2 class="section-title">Réponses Ollama</h2>
+
+                <div class="dashboard-grid">
+                    <div class="card span-6">
+                        <h3>Réponse Ollama client</h3>
+                        <pre>{{ verification.client_ollama_result | tojson(indent=2) }}</pre>
+                    </div>
+
+                    <div class="card span-6">
+                        <h3>Réponse Ollama montant</h3>
+                        <pre>{{ verification.amount_ollama_result | tojson(indent=2) }}</pre>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if detections %}
+                <h2 class="section-title">Détections Detectron2</h2>
+
+                <div class="card">
+                    <table>
+                        <tr>
+                            <th>Classe</th>
+                            <th>Score</th>
+                            <th>BBox</th>
+                        </tr>
+
+                        {% for detection in detections %}
+                            <tr>
+                                <td>{{ detection.class }}</td>
+                                <td>{{ detection.score }}</td>
+                                <td>{{ detection.bbox }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            {% endif %}
+
+        </section>
+    </main>
+
+</div>
+</body>
+</html>

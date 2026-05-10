@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>BH Bank - Assistant RAG</title>
+
+    <style>
+        :root {
+            --bh-blue: #22396f;
+            --bh-blue-dark: #14234a;
+            --bh-red: #d71920;
+            --bg: #f4f6fb;
+            --card: #ffffff;
+            --text: #111827;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --success: #16a34a;
+            --error: #dc2626;
+            --warning: #d97706;
+            --soft-blue: #eef4ff;
+            --soft-green: #ecfdf5;
+            --soft-red: #fff1f2;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .app {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 330px 1fr;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, var(--bh-blue), var(--bh-blue-dark));
+            color: white;
+            padding: 24px;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            overflow-y: auto;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .brand-logo {
+            background: white;
+            color: var(--bh-red);
+            font-size: 32px;
+            font-weight: 900;
+            border-radius: 16px;
+            padding: 12px 16px;
+        }
+
+        .brand-text strong {
+            display: block;
+            font-size: 22px;
+        }
+
+        .brand-text span {
+            display: block;
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        .agent-card {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 22px;
+            padding: 18px;
+            margin-bottom: 18px;
+        }
+
+        .agent-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .agent-avatar {
+            width: 44px;
+            height: 44px;
+            background: white;
+            color: var(--bh-blue);
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            font-weight: 900;
+        }
+
+        .agent-header h3 {
+            margin: 0;
+            font-size: 17px;
+        }
+
+        .agent-header p {
+            margin: 3px 0 0;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+
+        .bubble {
+            background: white;
+            color: #1f2937;
+            border-radius: 16px;
+            padding: 14px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .nav-card {
+            background: rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 20px;
+            padding: 14px;
+            margin-bottom: 18px;
+        }
+
+        .nav-title {
+            font-size: 13px;
+            opacity: 0.75;
+            margin: 0 0 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .nav-btn {
+            width: 100%;
+            padding: 13px 14px;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            background: transparent;
+            color: white;
+            text-align: left;
+            font-weight: 700;
+            margin-bottom: 8px;
+            transition: 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .nav-btn.active {
+            background: white;
+            color: var(--bh-blue);
+        }
+
+        .side-action {
+            width: 100%;
+            padding: 12px 14px;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            background: white;
+            color: var(--bh-blue);
+            font-weight: 800;
+            margin-top: 8px;
+        }
+
+        .side-result {
+            margin-top: 12px;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.10);
+            border-radius: 12px;
+            padding: 10px;
+            white-space: pre-wrap;
+            display: none;
+        }
+
+        .side-result.active {
+            display: block;
+        }
+
+        .main {
+            min-width: 0;
+        }
+
+        .topbar {
+            height: 76px;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            padding: 0 34px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .page-title h1 {
+            margin: 0;
+            color: var(--bh-blue-dark);
+            font-size: 24px;
+        }
+
+        .page-title p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .pill {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 8px 14px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .role {
+            background: var(--bh-blue);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .content {
+            padding: 32px 36px 60px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .section-title {
+            color: #4b5563;
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin: 0 0 18px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 22px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            padding: 22px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+        }
+
+        .span-4 { grid-column: span 4; }
+        .span-5 { grid-column: span 5; }
+        .span-6 { grid-column: span 6; }
+        .span-7 { grid-column: span 7; }
+        .span-12 { grid-column: span 12; }
+
+        h2, h3 {
+            color: var(--bh-blue-dark);
+        }
+
+        h3 {
+            margin-top: 0;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            font-size: 14px;
+            outline: none;
+            background: white;
+            margin-bottom: 12px;
+        }
+
+        textarea {
+            min-height: 130px;
+            resize: vertical;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--bh-blue);
+            box-shadow: 0 0 0 3px rgba(34, 57, 111, 0.12);
+        }
+
+        button {
+            border: none;
+            cursor: pointer;
+            border-radius: 14px;
+            padding: 12px 18px;
+            font-weight: 800;
+            font-size: 14px;
+        }
+
+        .btn-blue {
+            width: 100%;
+            background: var(--bh-blue);
+            color: white;
+        }
+
+        .btn-blue:hover {
+            background: var(--bh-blue-dark);
+        }
+
+        .btn-red {
+            width: 100%;
+            background: var(--bh-red);
+            color: white;
+        }
+
+        .btn-red:hover {
+            background: #b9151b;
+        }
+
+        .response-box {
+            background: #ffffff;
+            border: 1px solid #dbe3f0;
+            border-left: 6px solid var(--bh-blue);
+            color: #1f2937;
+            padding: 20px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.75;
+            white-space: pre-wrap;
+            min-height: 220px;
+        }
+
+        .response-box.empty {
+            color: var(--muted);
+            background: #f8fafc;
+            border-left-color: #cbd5e1;
+        }
+
+        .json-box {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-left: 6px solid var(--bh-red);
+            color: #111827;
+            padding: 18px;
+            border-radius: 18px;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            min-height: 160px;
+        }
+
+        .loader {
+            display: none;
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 14px;
+            background: var(--soft-blue);
+            color: var(--bh-blue);
+            font-weight: 700;
+        }
+
+        .loader.active {
+            display: block;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+
+        .metric {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 18px;
+        }
+
+        .metric span {
+            display: block;
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .metric strong {
+            font-size: 22px;
+            color: var(--bh-blue-dark);
+        }
+
+        .success { color: var(--success) !important; }
+        .error { color: var(--error) !important; }
+        .warning { color: var(--warning) !important; }
+
+        .preview {
+            display: none;
+            margin-top: 14px;
+        }
+
+        .preview img {
+            width: 100%;
+            max-height: 390px;
+            object-fit: contain;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 10px;
+        }
+
+        .hint {
+            background: var(--soft-blue);
+            border: 1px solid #dbeafe;
+            color: var(--bh-blue-dark);
+            padding: 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 14px;
+        }
+
+        .examples {
+            display: grid;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .example-btn {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            color: var(--bh-blue-dark);
+            text-align: left;
+            padding: 12px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .example-btn:hover {
+            background: var(--soft-blue);
+        }
+
+        .metric-card {
+            background: var(--soft-green);
+            border: 1px solid #bbf7d0;
+            border-radius: 18px;
+            padding: 18px;
+        }
+
+        .metric-card.red {
+            background: var(--soft-red);
+            border-color: #fecdd3;
+        }
+
+        .metric-card.blue {
+            background: var(--soft-blue);
+            border-color: #bfdbfe;
+        }
+
+        .metric-card span {
+            display: block;
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .metric-card strong {
+            font-size: 26px;
+            color: var(--bh-blue-dark);
+        }
+
+        @media (max-width: 1050px) {
+            .app {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: relative;
+                height: auto;
+            }
+
+            .topbar {
+                height: auto;
+                padding: 18px;
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .span-4,
+            .span-5,
+            .span-6,
+            .span-7,
+            .span-12 {
+                grid-column: span 1;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="app">
+
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-logo">BH</div>
+            <div class="brand-text">
+                <strong>BH Bank</strong>
+                <span>Assistant RAG multimodal</span>
+            </div>
+        </div>
+
+        <div class="agent-card">
+            <div class="agent-header">
+                <div class="agent-avatar">IA</div>
+                <div>
+                    <h3>Agent documentaire</h3>
+                    <p>Ollama · FAISS · Evaluation</p>
+                </div>
+            </div>
+
+            <div class="bubble">
+                L’évaluation est automatique pour chaque réponse RAG.
+            </div>
+        </div>
+
+        <div class="nav-card">
+            <p class="nav-title">Navigation</p>
+
+            <button id="btnRag" class="nav-btn active" onclick="showPage('rag')">
+                📚 Question RAG
+            </button>
+
+            <button id="btnVision" class="nav-btn" onclick="showPage('vision')">
+                🧾 Analyse multimodale
+            </button>
+        </div>
+
+        <div class="nav-card">
+            <p class="nav-title">Système</p>
+
+            <button class="side-action" onclick="checkHealth()">Vérifier le système</button>
+            <div id="healthResult" class="side-result"></div>
+
+            <button class="side-action" onclick="rebuildIndex()">Reconstruire l’index</button>
+            <div id="rebuildResult" class="side-result"></div>
+        </div>
+
+
+        <button class="nav-btn" onclick="window.location.href='/cheque'">
+    🏦 Vérification Chèque
+</button>
+    </aside>
+
+    <main class="main">
+
+        <header class="topbar">
+            <div class="page-title">
+                <h1 id="pageHeading">Question RAG</h1>
+                <p id="pageSubheading">Réponse + évaluation automatique</p>
+            </div>
+
+            <div class="pill">
+                <span class="role">CHEF AGENCY</span>
+                <strong>BH Dashboard</strong>
+            </div>
+        </header>
+
+        <section class="content">
+
+            <!-- PAGE QUESTION RAG -->
+            <div id="pageRag" class="page active">
+                <h2 class="section-title">Question RAG avec évaluation automatique</h2>
+
+                <div class="grid">
+                    <div class="card span-5">
+                        <h3>Votre question</h3>
+
+                        <div class="hint">
+                            Posez une question. Le système retourne la réponse, les sources récupérées et une évaluation automatique de qualité.
+                        </div>
+
+                        <select id="domain">
+                            <option value="">Tous les domaines</option>
+                            <option value="cheque_tunisie">Chèques Tunisie</option>
+                            <option value="facture">Factures</option>
+                        </select>
+
+                        <textarea id="question" placeholder="Ex: Quelles sont les normes d’un chèque tunisien ?"></textarea>
+
+                        <select id="askK">
+                            <option value="3">K = 3</option>
+                            <option value="5">K = 5</option>
+                            <option value="6" selected>K = 6</option>
+                            <option value="10">K = 10</option>
+                        </select>
+
+                        <button class="btn-blue" onclick="askQuestion()">Demander + Évaluer automatiquement</button>
+
+                        <div id="askLoader" class="loader">Analyse RAG + évaluation automatique en cours...</div>
+
+                        <div class="examples">
+                            <button class="example-btn" onclick="setQuestion('Quelles sont les normes principales d’un chèque tunisien ?')">
+                                Quelles sont les normes principales d’un chèque tunisien ?
+                            </button>
+
+                            <button class="example-btn" onclick="setQuestion('Quels sont les champs obligatoires dans un chèque bancaire ?')">
+                                Quels sont les champs obligatoires dans un chèque bancaire ?
+                            </button>
+
+                            <button class="example-btn" onclick="setQuestion('Est-ce qu’un chèque sans signature est conforme ?')">
+                                Est-ce qu’un chèque sans signature est conforme ?
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card span-7">
+                        <h3>Réponse RAG</h3>
+
+                        <div id="answer" class="response-box empty">
+                            La réponse apparaîtra ici.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid">
+                    <div class="card span-6">
+                        <h3>Évaluation automatique de cette réponse</h3>
+                        <div id="answerMetrics" class="json-box">
+                            L’évaluation automatique apparaîtra ici.
+                        </div>
+                    </div>
+
+                    <div class="card span-6">
+                        <h3>Sources récupérées</h3>
+                        <div id="retrievedSources" class="json-box">
+                            Les sources récupérées apparaîtront ici.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE MULTIMODALE -->
+            <div id="pageVision" class="page">
+                <h2 class="section-title">Interface Analyse Multimodale</h2>
+
+                <div class="grid">
+                    <div class="card span-5">
+                        <h3>Importer un document</h3>
+
+                        <div class="hint">
+                            Ollama Vision extrait les champs visibles, puis le RAG analyse la conformité.
+                        </div>
+
+                        <select id="document_type">
+                            <option value="cheque_tunisie">Chèque Tunisie</option>
+                            <option value="facture">Facture</option>
+                            <option value="auto">Auto-détection</option>
+                        </select>
+
+                        <input type="file" id="image" accept="image/*">
+
+                        <button class="btn-red" onclick="analyzeDocument()">Analyser le document</button>
+
+                        <div id="docLoader" class="loader">Extraction multimodale et analyse RAG en cours...</div>
+
+                        <div id="preview" class="preview">
+                            <h3>Aperçu du document</h3>
+                            <img id="previewImage" src="">
+                        </div>
+                    </div>
+
+                    <div class="card span-7">
+                        <h3>Résumé</h3>
+
+                        <div class="summary-grid">
+                            <div class="metric">
+                                <span>Type</span>
+                                <strong id="summaryType">-</strong>
+                            </div>
+
+                            <div class="metric">
+                                <span>Extraction</span>
+                                <strong id="summaryExtraction" class="warning">-</strong>
+                            </div>
+
+                            <div class="metric">
+                                <span>Analyse RAG</span>
+                                <strong id="summaryRag" class="warning">-</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid">
+                    <div class="card span-6">
+                        <h3>JSON extrait</h3>
+                        <div id="extractionResult" class="json-box">
+                            Le JSON extrait apparaîtra ici.
+                        </div>
+                    </div>
+
+                    <div class="card span-6">
+                        <h3>Analyse RAG du document</h3>
+                        <div id="ragAnalysis" class="response-box empty">
+                            L’analyse RAG apparaîtra ici.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid">
+                    <div class="card span-12">
+                        <h3>Réponse complète API</h3>
+                        <div id="fullResult" class="json-box">
+                            La réponse complète apparaîtra ici.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+</div>
+
+<script>
+    const BASE_URL = "";
+
+    function prettyJSON(data) {
+        return JSON.stringify(data, null, 2);
+    }
+
+    function showPage(page) {
+        const pageRag = document.getElementById("pageRag");
+        const pageVision = document.getElementById("pageVision");
+
+        const btnRag = document.getElementById("btnRag");
+        const btnVision = document.getElementById("btnVision");
+
+        pageRag.classList.remove("active");
+        pageVision.classList.remove("active");
+
+        btnRag.classList.remove("active");
+        btnVision.classList.remove("active");
+
+        if (page === "rag") {
+            pageRag.classList.add("active");
+            btnRag.classList.add("active");
+
+            document.getElementById("pageHeading").textContent = "Question RAG";
+            document.getElementById("pageSubheading").textContent = "Réponse + évaluation automatique";
+        }
+
+        if (page === "vision") {
+            pageVision.classList.add("active");
+            btnVision.classList.add("active");
+
+            document.getElementById("pageHeading").textContent = "Analyse multimodale";
+            document.getElementById("pageSubheading").textContent = "Analysez une image de chèque ou de facture";
+        }
+    }
+
+    function setQuestion(text) {
+        document.getElementById("question").value = text;
+    }
+
+    function setLoading(id, active, text = "") {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        if (active) {
+            el.classList.add("active");
+            if (text) el.textContent = text;
+        } else {
+            el.classList.remove("active");
+        }
+    }
+
+    document.getElementById("image").addEventListener("change", function () {
+        const file = this.files[0];
+
+        if (!file) {
+            document.getElementById("preview").style.display = "none";
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            document.getElementById("previewImage").src = e.target.result;
+            document.getElementById("preview").style.display = "block";
+        };
+
+        reader.readAsDataURL(file);
+    });
+
+    async function askQuestion() {
+        const question = document.getElementById("question").value.trim();
+        const domain = document.getElementById("domain").value;
+        const k = parseInt(document.getElementById("askK").value);
+
+        if (!question) {
+            alert("Veuillez écrire une question.");
+            return;
+        }
+
+        setLoading("askLoader", true, "Analyse RAG + évaluation automatique en cours...");
+
+        const answerBox = document.getElementById("answer");
+        const metricsBox = document.getElementById("answerMetrics");
+        const sourcesBox = document.getElementById("retrievedSources");
+
+        answerBox.textContent = "Veuillez patienter...";
+        answerBox.classList.remove("empty");
+
+        metricsBox.textContent = "Évaluation automatique en cours...";
+        sourcesBox.textContent = "Récupération des sources...";
+
+        try {
+            const response = await fetch(`${BASE_URL}/ask`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    question: question,
+                    domain: domain,
+                    k: k
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                answerBox.textContent = data.response;
+                metricsBox.textContent = prettyJSON(data.evaluation);
+                sourcesBox.textContent = prettyJSON(data.retrieved_sources);
+            } else {
+                answerBox.textContent = prettyJSON(data);
+                metricsBox.textContent = "Erreur.";
+                sourcesBox.textContent = "Erreur.";
+            }
+
+        } catch (error) {
+            answerBox.textContent = "Erreur: " + error.message;
+            metricsBox.textContent = "Erreur: " + error.message;
+            sourcesBox.textContent = "Erreur: " + error.message;
+
+        } finally {
+            setLoading("askLoader", false);
+        }
+    }
+
+    async function analyzeDocument() {
+        const fileInput = document.getElementById("image");
+        const file = fileInput.files[0];
+        const documentType = document.getElementById("document_type").value;
+
+        if (!file) {
+            alert("Veuillez sélectionner une image.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("image", file);
+        formData.append("document_type", documentType);
+
+        setLoading("docLoader", true, "Extraction avec Ollama Vision...");
+
+        document.getElementById("summaryType").textContent = documentType;
+        document.getElementById("summaryExtraction").textContent = "En cours";
+        document.getElementById("summaryExtraction").className = "warning";
+        document.getElementById("summaryRag").textContent = "En cours";
+        document.getElementById("summaryRag").className = "warning";
+        document.getElementById("extractionResult").textContent = "Extraction en cours...";
+
+        const ragBox = document.getElementById("ragAnalysis");
+        ragBox.textContent = "Analyse RAG en cours...";
+        ragBox.classList.remove("empty");
+
+        document.getElementById("fullResult").textContent = "Veuillez patienter...";
+
+        try {
+            const response = await fetch(`${BASE_URL}/analyze-document`, {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+
+            document.getElementById("fullResult").textContent = prettyJSON(data);
+
+            if (data.success) {
+                document.getElementById("summaryExtraction").textContent = "OK";
+                document.getElementById("summaryExtraction").className = "success";
+                document.getElementById("summaryRag").textContent = "OK";
+                document.getElementById("summaryRag").className = "success";
+
+                document.getElementById("extractionResult").textContent = prettyJSON(data.extraction || {});
+                ragBox.textContent = data.rag_analysis || "Aucune analyse.";
+            } else {
+                document.getElementById("summaryExtraction").textContent = "Erreur";
+                document.getElementById("summaryExtraction").className = "error";
+                document.getElementById("summaryRag").textContent = "Erreur";
+                document.getElementById("summaryRag").className = "error";
+
+                document.getElementById("extractionResult").textContent = prettyJSON(data);
+                ragBox.textContent = data.error || "Erreur inconnue.";
+            }
+
+        } catch (error) {
+            document.getElementById("summaryExtraction").textContent = "Erreur";
+            document.getElementById("summaryExtraction").className = "error";
+            document.getElementById("summaryRag").textContent = "Erreur";
+            document.getElementById("summaryRag").className = "error";
+            document.getElementById("fullResult").textContent = "Erreur: " + error.message;
+
+        } finally {
+            setLoading("docLoader", false);
+        }
+    }
+
+    async function rebuildIndex() {
+        const box = document.getElementById("rebuildResult");
+        box.classList.add("active");
+        box.textContent = "Reconstruction de l’index...";
+
+        try {
+            const response = await fetch(`${BASE_URL}/rebuild-index`, {
+                method: "POST"
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                box.textContent = data.message || "Index reconstruit.";
+            } else {
+                box.textContent = data.error || "Erreur.";
+            }
+
+        } catch (error) {
+            box.textContent = "Erreur: " + error.message;
+        }
+    }
+
+    async function checkHealth() {
+        const box = document.getElementById("healthResult");
+        box.classList.add("active");
+        box.textContent = "Vérification...";
+
+        try {
+            const response = await fetch(`${BASE_URL}/health`);
+            const data = await response.json();
+
+            box.textContent = prettyJSON(data);
+
+        } catch (error) {
+            box.textContent = "Erreur: " + error.message;
+        }
+    }
+</script>
+
+</body>
+</html>

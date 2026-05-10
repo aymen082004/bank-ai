@@ -61,3 +61,14 @@ backend/credit_agent/supervisor/bd/insert_mongo.py
 backend/credit_agent/supervisor/bd/test_mongo.py
 backend/credit_agent/test/
 backend/credit_agent/.env
+
+*.pth
+*.pt
+*.onnx
+database.db
+static/uploads/
+static/results/
+static/crops/
+chatbot_vector_index/
+__pycache__/
+.venv/
