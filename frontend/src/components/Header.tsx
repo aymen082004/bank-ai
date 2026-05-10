@@ -17,31 +17,37 @@ export default function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  let navLinks: { label: string; isBrand?: boolean; to: string }[] = [];
+  let navLinks = [{ label: "BH BANK", isBrand: true, to: "/" }];
 
   if (user) {
     navLinks = [
-      { label: "BH BANK", isBrand: true, to: user ? "/dashboard" : "/" },
+      { label: "BH BANK", isBrand: true, to: "/dashboard" },
       { label: "Agent d'accueil", to: "/bank-agent" },
       { label: "Agent de crédit", to: "/credit-agent" },
       { label: "Agent de réclamation", to: "/complaint-agent" },
       { label: "Agent Recommandation", to: "/investment-agent" },
+      {
+        label: "Agent Vérification Chèque",
+        external: true,
+        url: "https://lair-legible-revenue.ngrok-free.dev/cheque",
+      },
     ];
-
-    if (user.role.toLowerCase().includes("chef")) {
-      navLinks = [
-        { label: "BH BANK", isBrand: true, to: "/dashboard" },
-        { label: "Dashboard", isBrand: true, to: "/dashboard" },
-        { label: 'Agent de détection de fraude', to: '/fraud-agent' },
-        { label: "Admin", to: "/admin/" },
-      ];
-    }
   }
+
+  if (user && user.role.toLowerCase().includes("chef")) {
+    navLinks = [
+      { label: "BH BANK", isBrand: true, to: "/dashboard" },
+      { label: "Dashboard", isBrand: true, to: "/dashboard" },
+      { label: "Agent de détection de fraude", to: "/fraud-agent" },
+    ];
+  }
+
 
   const roleDisplayMap: { [key: string]: string } = {
     customer: "Client",
     "chef of agency": "Chef d'agence",
   };
+
   const displayRole = user
     ? roleDisplayMap[user.role.toLowerCase()] || user.role
     : "";
@@ -61,13 +67,18 @@ export default function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full transition-shadow duration-300 ${scrolled ? "shadow-lg" : ""}`}
+      className={`sticky top-0 z-50 w-full transition-shadow duration-300 ${scrolled ? "shadow-lg" : ""
+        }`}
     >
       <div
-        className={`bg-white transition-all duration-300 ${scrolled ? "opacity-95 backdrop-blur-sm" : ""}`}
+        className={`bg-white transition-all duration-300 ${scrolled ? "opacity-95 backdrop-blur-sm" : ""
+          }`}
       >
         <div className="max-w-screen-xl mx-auto px-4 lg:px-6 flex items-center justify-between h-[68px]">
-          <a href={user ? "/dashboard" : "/"} className="flex items-center shrink-0">
+          <a
+            href={user ? "/dashboard" : "/"}
+            className="flex items-center shrink-0"
+          >
             <img src="/logobh.svg" alt="BH Bank" className="h-[42px] w-auto" />
           </a>
 
@@ -94,6 +105,7 @@ export default function Header() {
                     {user.name}
                   </span>
                 </div>
+
                 <button
                   onClick={handleLogout}
                   className="p-1.5 text-gray-500 hover:text-[#c8102e] hover:bg-red-50 rounded-full transition"
@@ -141,7 +153,8 @@ export default function Header() {
       </div>
 
       <div
-        className={`bg-[#1c2951] transition-all duration-300 hidden ${mobileOpen ? "lg:block" : "lg:hidden"}`}
+        className={`bg-[#1c2951] transition-all duration-300 hidden ${mobileOpen ? "lg:block" : "lg:hidden"
+          }`}
       >
         <div className="max-w-screen-xl mx-auto px-4 lg:px-6 flex items-center justify-between h-10">
           <nav className="flex items-center h-full">
@@ -152,27 +165,42 @@ export default function Header() {
                 onMouseEnter={() => item.children && setActiveNav(item.label)}
                 onMouseLeave={() => setActiveNav(null)}
               >
-                <Link
-                  to={item.to || "#"}
-                  className={`flex items-center gap-1 h-full px-3.5 text-[13px] font-medium transition-colors whitespace-nowrap
-                    ${idx === 0
-                      ? "text-white font-bold border-r border-[#ffffff30]"
-                      : "text-gray-300 hover:text-white"
-                    }`}
-                >
-                  {item.label}
-                  {item.children && (
-                    <ChevronDown
-                      size={11}
-                      className={`transition-transform duration-200 ${activeNav === item.label ? "rotate-180" : ""}`}
-                    />
-                  )}
-                  <span className="absolute bottom-0 left-0 w-full h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300" />
-                </Link>
+                {item.external ? (
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex items-center gap-1 h-full px-3.5 text-[13px] font-medium transition-colors whitespace-nowrap ${idx === 0
+                        ? "text-white font-bold border-r border-[#ffffff30]"
+                        : "text-gray-300 hover:text-white"
+                      }`}
+                  >
+                    {item.label}
+                    <span className="absolute bottom-0 left-0 w-full h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300" />
+                  </a>
+                ) : (
+                  <Link
+                    to={item.to || "#"}
+                    className={`flex items-center gap-1 h-full px-3.5 text-[13px] font-medium transition-colors whitespace-nowrap ${idx === 0
+                        ? "text-white font-bold border-r border-[#ffffff30]"
+                        : "text-gray-300 hover:text-white"
+                      }`}
+                  >
+                    {item.label}
+                    {item.children && (
+                      <ChevronDown
+                        size={11}
+                        className={`transition-transform duration-200 ${activeNav === item.label ? "rotate-180" : ""
+                          }`}
+                      />
+                    )}
+                    <span className="absolute bottom-0 left-0 w-full h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300" />
+                  </Link>
+                )}
 
                 {item.children && activeNav === item.label && (
                   <div className="absolute top-full left-0 bg-white shadow-xl min-w-52 py-2 z-50 border-t-2 border-[#c8102e]">
-                    {item.children.map((child) => (
+                    {item.children.map((child: string) => (
                       <a
                         key={child}
                         href="#"
@@ -216,6 +244,7 @@ export default function Header() {
                     </span>
                   </div>
                 </div>
+
                 <button
                   onClick={() => {
                     handleLogout();
@@ -235,18 +264,31 @@ export default function Header() {
                 SE CONNECTER
               </Link>
             )}
-            {navLinks.slice(1).map((item) => (
+
+            {navLinks.slice(1).map((item: any) => (
               <div
                 key={item.label}
                 className="border-b border-gray-100 last:border-0"
               >
-                <Link
-                  to={item.to || "#"}
-                  onClick={() => setMobileOpen(false)}
-                  className="block px-1 py-3.5 text-gray-800 font-medium text-sm"
-                >
-                  {item.label}
-                </Link>
+                {item.external ? (
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMobileOpen(false)}
+                    className="block px-1 py-3.5 text-gray-800 font-medium text-sm"
+                  >
+                    {item.label}
+                  </a>
+                ) : (
+                  <Link
+                    to={item.to || "#"}
+                    onClick={() => setMobileOpen(false)}
+                    className="block px-1 py-3.5 text-gray-800 font-medium text-sm"
+                  >
+                    {item.label}
+                  </Link>
+                )}
               </div>
             ))}
           </div>
