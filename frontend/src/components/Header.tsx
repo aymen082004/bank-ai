@@ -17,21 +17,25 @@ export default function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  let navLinks = [
-    { label: "BH BANK", isBrand: true, to: "/dashboard" },
-    { label: "Agent d'accueil", to: "/bank-agent" },
-    { label: "Agent de crédit", to: "/credit-agent" },
-    { label: "Agent de réclamation", to: "/complaint-agent" },
-    { label: "Agent Recommandation", to: "/investment-agent" },
-  ];
+  let navLinks: { label: string; isBrand?: boolean; to: string }[] = [];
 
-  if (user && user.role.toLowerCase().includes("chef")) {
+  if (user) {
     navLinks = [
-      { label: "BH BANK", isBrand: true, to: "/dashboard" },
-      { label: "Dashboard", isBrand: true, to: "/dashboard" },
-      { label: 'Agent de détection de fraude', to: '/fraud-agent' },
-      { label: "Admin", to: "/admin/" },
+      { label: "BH BANK", isBrand: true, to: user ? "/dashboard" : "/" },
+      { label: "Agent d'accueil", to: "/bank-agent" },
+      { label: "Agent de crédit", to: "/credit-agent" },
+      { label: "Agent de réclamation", to: "/complaint-agent" },
+      { label: "Agent Recommandation", to: "/investment-agent" },
     ];
+
+    if (user.role.toLowerCase().includes("chef")) {
+      navLinks = [
+        { label: "BH BANK", isBrand: true, to: "/dashboard" },
+        { label: "Dashboard", isBrand: true, to: "/dashboard" },
+        { label: 'Agent de détection de fraude', to: '/fraud-agent' },
+        { label: "Admin", to: "/admin/" },
+      ];
+    }
   }
 
   const roleDisplayMap: { [key: string]: string } = {

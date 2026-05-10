@@ -36,9 +36,10 @@ def get_llm():
         #     max_tokens=2048,
         # )
     
-    return ChatOllama(
-        model=os.getenv("OLLAMA_MODEL", "qwen3.5:4b"),
-        base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+    return ChatOpenAI(
+        model=os.getenv("OPENROUTER_MODEL", "mistralai/ministral-14b-2512"),
+        base_url="https://openrouter.ai/api/v1",
+        api_key=os.getenv("OPENROUTER_API_KEY", ""),
         temperature=0.2,
         max_tokens=1024,
     )

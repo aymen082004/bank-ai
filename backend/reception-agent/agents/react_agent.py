@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, List, Dict, Optional
 from dotenv import load_dotenv
-from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 
 # Add necessary paths
 current_dir = Path(__file__).resolve().parent
@@ -41,9 +41,8 @@ else:
     load_dotenv()
 
 # Configuration
-LLM_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
-LLM_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3.5:4b")
-# LLM_API_KEY = os.environ.get("FASTFIN_LLM_API_KEY", "lm-studio")
+LLM_MODEL = os.environ.get("OPENROUTER_MODEL", "mistralai/ministral-14b-2512")
+LLM_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 
 SYSTEM_PROMPT = """Tu es l'assistant expert de la BH Bank Tunisie.
 TON OBJECTIF : Aider les clients pour leurs opérations bancaires ET répondre à leurs questions générales ou d'actualité sur la BH Bank (en utilisant l'outil de recherche si nécessaire).
@@ -129,10 +128,10 @@ class BankReactAgent:
             HumanMessage(content=user_question)
         ]
 
-        llm = ChatOllama(
+        llm = ChatOpenAI(
             model=LLM_MODEL,
-            base_url=LLM_BASE_URL,
-            # api_key=LLM_API_KEY,
+            base_url="https://openrouter.ai/api/v1",
+            api_key=LLM_API_KEY,
             temperature=0,
         )
 

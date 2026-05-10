@@ -26,7 +26,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langgraph.prebuilt import create_react_agent
 
@@ -40,18 +40,12 @@ logger = logging.getLogger(__name__)
 
 
 # ==========================================
-# ⚙️  LLM  (LM Studio)
+# ⚙️  LLM  (OpenRouter)
 # ==========================================
-# Load environment
-dotenv_path = Path(__file__).resolve().parents[2] / ".env"
-if dotenv_path.exists():
-    load_dotenv(dotenv_path)
-else:
-    load_dotenv()
-
-llm = ChatOllama(
-    model=os.getenv("OLLAMA_MODEL", "qwen3.5:4b"),
-    base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+llm = ChatOpenAI(
+    model=os.getenv("OPENROUTER_MODEL", "mistralai/ministral-14b-2512"),
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.getenv("OPENROUTER_API_KEY", ""),
     temperature=0,
     max_tokens=1500,
 )
